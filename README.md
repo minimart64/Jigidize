@@ -1,4 +1,6 @@
-# hello-world
-First repository created as part of the tutorial
+# Jigidize
+A python script that adds new puzzles from my friends to my list
 
-important stuff about me...
+Logs in to Jigidi.com
+Searches the notifications page to add newly added puzzles
+Searches those puzzles for links to other puzzles in the comments, etc.
