@@ -13,7 +13,12 @@ log.setLevel(logging.DEBUG)
 log.info("__________Blank Space_________")
 log.info("##### Starting to Jigidize #####")
 
+# Change these when switching from dev to prod
 testing = 1
+puzzleListFile = "/home/pi/Documents/python/jigidi.txt" # dev pi
+#puzzleListFile = "/home/pi/Documents/Photos/jigidi" # prod pi
+username = 'Minimart64'
+password = 'worthing'
 
 if testing:
     log.info("Testing")
@@ -35,12 +40,12 @@ finally:
 baseUrl = "https://www.jigidi.com"
 logInUrl = "https://www.jigidi.com/login.php"
 puzzleUrl = "https://www.jigidi.com/jigsaw-puzzle/"
+createdUrl = "https://www.jigidi.com/created.php?id="
 setBookmarkUrl = "https://www.jigidi.com/ajax/set_bookmark.php"
 setFollowUrl = "https://www.jigidi.com/ajax/notify.php"
 addCommentUrl = "https://www.jigidi.com/ajax/comment_add.php"
-puzzleListFile = "/home/pi/Documents/python/jigidi.txt"
-username = 'Minimart64'
-password = 'worthing'
+publishUrl = "https://www.jigidi.com/ajax/change_puzzle.php"
+
 
 # some global variables
 true = 1
@@ -48,9 +53,7 @@ false = 0
 fail = 0
 addCodes = []
 followCodes = []
-totalAdds = 0
-totalFollows = 0
-totalComments = 0
+totalAdds = totalFollows = totalComments = 0
 fileEmpty = 0
 
 def creatorCheck(puzzlePage):
@@ -304,6 +307,35 @@ def scrapePuzzle(puzzCode):
                     pass
     log.debug(addCodes)
 
+def publishPuzzle(puzzCode):
+    # publish a puzzle so anyone can solve it
+    log.info("publishing puzzle " + puzzCode)
+    puzzlePage = s.get(createdUrl + puzzCode)
+    log.debug("opened page " + puzzlePage.url)
+    html = lxml.html.fromstring(puzzlePage.text)
+    keySet = html.xpath(r'//input[@name="key"]')
+    keys = [x.attrib('value') for x in keySet]
+    key = keys[0]
+    print("key: " + key)
+    log.debug("publish Key = " + key)
+    titleSet = html.xpath(r'//input[@name="title"]')
+    title = titleSet[0].attrib('value')
+    print("Title: " + title)
+    description = 'test'
+    keywords = 'test'
+    form = {'title':title, 'description':description, 'publish':'on', 'category':\
+            3, 'copyright':2, 'keywords':keywords, 'key':key, 'pid':puzzCode}
+    headers = {'Referer':puzzlePage.url}
+    response = s.post(publishUrl, data = form, headers = headers)
+    if response.status_code == requests.codes.ok:
+        log.debug("published puzzle " + puzzleId)
+        addCodes.append(puzzCode)
+        return true
+    else:
+        log.warning("tried and failed to publish puzzle " + puzzleId)
+        return false
+    
+
 ## actual code starts here ##
 puzzleFile = open(puzzleListFile, 'r') # open the puzzle list file
 
@@ -321,7 +353,8 @@ if userUrl:
     scrapeUser(userUrl)
     
 if testing:
-    scrapePuzzle('26ZCX2BQ') #pumpkin in her jacket
+    publishPuzzle('26ZCX2BQ') #pumpkin in her jacket
+    #scrapePuzzle('26ZCX2BQ') #pumpkin in her jacket
     #scrapePuzzle('US8EUSFG') #Hubble
     #scrapeUser('https://www.jigidi.com/user/Spiritual')
 
