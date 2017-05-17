@@ -160,17 +160,21 @@ def justFollow(puzzlePage, puzzleId):
         else:
             return false
 
-def addComment(puzzlePage, puzzleId):
-    global fileEmpty, totalComments
-    log.debug("getting the Java g_key and g_count values")
-    html = lxml.html.fromstring(puzzlePage.text)
+def getGKey(html):
     javaScriptSet = html.xpath(r'//script[@type="text/javascript"]/child::text()')
     for script in javaScriptSet:
         start = script.find("g_key")
         if start > 0:
             g_key = script[start+9:start+15]
             log.debug("g_key is " + g_key)
-            print("g_key is " + g_key)
+            return g_key
+
+
+def addComment(puzzlePage, puzzleId):
+    global fileEmpty, totalComments
+    html = lxml.html.fromstring(puzzlePage.text)
+    log.debug("getting the Java g_key and g_count values")
+    g_key = getGKey(html)
     log.debug("Figuring out g_count")
     commentors = html.xpath(r'//a//span[@itemprop="creator"]/child::text()')
     g_count = len(commentors) # don't need to add one since puzzle creator is in this list
@@ -313,21 +317,21 @@ def publishPuzzle(puzzCode):
     puzzlePage = s.get(createdUrl + puzzCode)
     log.debug("opened page " + puzzlePage.url)
     html = lxml.html.fromstring(puzzlePage.text)
-    ### need to get g_key again like in comment
+    g_key = getGKey(html)
     key = g_key + "#info form_1"
-    print("key: " + key)
-    log.debug("publish Key = " + key)
     titleSet = html.xpath(r'//input[@name="title"]')
-    title = titleSet[0].attrib['VALUE']
+    print(titleSet)
+    title = titleSet[0].attrib['value']
     print("Title: " + title)
     description = 'test'
     keywords = 'test'
-    form = {'title':title, 'description':description, 'publish':'on', 'category':\
+    form = {'title':title, 'description':description, 'credit_name':"",\
+            'credit_link':"", 'info_message':"", 'publish':'on', 'category':\
             3, 'copyright':2, 'keywords':keywords, 'key':key, 'pid':puzzCode}
     headers = {'Referer':puzzlePage.url}
     response = s.post(publishUrl, data = form, headers = headers)
     if response.status_code == requests.codes.ok:
-        log.debug("published puzzle " + puzzleId)
+        log.debug("published puzzle " + puzzCode)
         addCodes.append(puzzCode)
         return true
     else:
