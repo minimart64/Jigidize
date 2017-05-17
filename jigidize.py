@@ -313,13 +313,12 @@ def publishPuzzle(puzzCode):
     puzzlePage = s.get(createdUrl + puzzCode)
     log.debug("opened page " + puzzlePage.url)
     html = lxml.html.fromstring(puzzlePage.text)
-    keySet = html.xpath(r'//input[@name="key"]')
-    keys = [x.attrib('value') for x in keySet]
-    key = keys[0]
+    ### need to get g_key again like in comment
+    key = g_key + "#info form_1"
     print("key: " + key)
     log.debug("publish Key = " + key)
     titleSet = html.xpath(r'//input[@name="title"]')
-    title = titleSet[0].attrib('value')
+    title = titleSet[0].attrib['VALUE']
     print("Title: " + title)
     description = 'test'
     keywords = 'test'
