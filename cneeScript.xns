@@ -1,0 +1,250 @@
+####################################
+#         System information       #
+####################################
+# Date:                   2017:05:19 
+# Time:                   12:06:02 
+# Xnee program:           cnee 
+# Xnee version:           3.19 
+# Xnee home:              http://www.gnu.org/software/xnee/ 
+# Xnee info mailing list: info-xnee@gnu.org 
+# Xnee bug mailing list:  bug-xnee@gnu.org 
+# X version:              11 
+# X revision:             0 
+# X vendor:               The X.Org Foundation 
+# X vendor release:       60900000 
+# Record version major:   1
+# Record version minor:   13
+# OS name:                Linux 
+# OS Release:             4.4.34-v7+ 
+# OS Version:             #930 SMP Wed Nov 23 15:20:41 GMT 2016 
+# Machine:                armv7l 
+# Nodename:               raspberrypiC 
+# Display name:           :1.0
+# Dimension:              1280x1024
+
+
+
+##############################################
+#      Xnee application arguments            #
+##############################################
+#  cnee -record --mouse --keyboard -o cneetest --stop-key h 
+
+
+##############################################
+#      Displays                              #
+##############################################
+# display :1.0
+# distribute
+
+
+##############################################
+#      Files                                 #
+##############################################
+# out-file cneetest
+# err-file stderr
+
+
+##############################################
+#      Key Grabs                             #
+##############################################
+# stop-key         h
+# pause-key        0
+# resume-key       0
+# insert-key       0
+# exec-key         0
+# exec-program-key         xnee-exec-no-program
+
+
+##############################################
+#      Recording limits etc                  #
+##############################################
+
+events-to-record        -1
+data-to-record          -1
+seconds-to-record       -1
+# first-last
+
+# Record  all (including current) clients or only future ones
+all-clients
+# future-clients
+
+# Store the starting mouse position 
+# store-mouse-position
+
+
+##############################################
+#      Resolution                            #
+##############################################
+
+# Resolution
+#recorded-resolution  1280x1024
+#replay-resolution  1x1
+#resolution-adjustment  0
+
+
+##############################################
+#      Speed                                 #
+##############################################
+
+# Speed
+#speed-percent  100
+
+
+##############################################
+#      Replaying limits etc                  #
+##############################################
+
+max-threshold 20 
+min-threshold 20 
+tot-threshold 40 
+
+
+##############################################
+#      Feedback                              #
+##############################################
+#feedback-none
+#feedback-stderr
+feedback-xosd
+ 
+
+
+##############################################
+#      Various                               #
+##############################################
+
+# Plugin file 
+
+# Modes (currently not used)
+# synchronised-replay
+
+# Replay offset
+#replay-offset 0x0
+
+# Human printout of X11 data (instead of Xnee format)
+# human-printout  
+
+# Delay before starting record/replay
+# time 0
+
+# No recording of ReparentNotify
+# no-reparent-recording 
+
+# Various
+#########################################
+#          Record settings              #
+#########################################
+#   data_flags          7
+#   rState              0x1c0ca40
+#   xids[0]             3
+#   xids[1]             0
+# Number of Ranges      2
+# RecordRange[0]
+request-range            0-0
+reply-range                   0-0 
+extension-request-major-range  0-0 
+extension-request-minor-range  0-0 
+extension-reply-major-range   0-0
+extension-reply-minor-range   0-0 
+delivered-event-range         21-21 
+device-event-range            2-6 
+error-range                   6-6 
+# RecordRange[1]
+request-range            0-0
+reply-range                   0-0 
+extension-request-major-range  0-0 
+extension-request-minor-range  0-0 
+extension-reply-major-range   0-0
+extension-reply-minor-range   0-0 
+delivered-event-range         0-0 
+device-event-range            66-71 
+error-range                   0-0 
+
+# select Chromium from menu bar
+0,6,469,20,0,0,0,561346061
+0,4,0,0,1,0,0,561346244
+0,5,0,0,1,0,0,561346400
+
+#click on "select picture"
+0,6,526,757,0,0,0,561348495
+0,4,0,0,1,0,0,561348594
+0,5,0,0,1,0,0,561348723
+
+#file picker window opens
+0,21,0,0,0,0,0,561348915
+NEW-WINDOW:167,175:27266904,27266904,20979038,0,0,0:2x30+977+702:0,0:Open File
+0,21,0,0,0,0,0,561348915
+0,21,0,0,0,0,0,561348915
+0,21,0,0,0,0,0,561348915
+0,21,0,0,0,0,0,561348915
+
+# just hit OK
+0,6,1056,847,0,0,0,561351058
+0,4,0,0,1,0,0,561351213
+0,5,0,0,1,0,0,561351354
+
+# set the pieces slider
+0,6,1000,581,0,0,0,561353087
+0,4,0,0,1,0,0,561354615
+0,6,1000,635,0,0,0,561355185
+0,5,0,0,1,0,0,561356097
+
+# hit create puzzle
+0,6,1012,952,0,0,0,561358833
+0,4,0,0,1,0,0,561359063
+0,5,0,0,1,0,0,561359196
+
+# double click in the address bar and ctrl-c
+0,6,753,117,0,0,0,561369953
+0,4,0,0,1,0,0,561375627
+0,5,0,0,1,0,0,561375715
+0,4,0,0,1,0,0,561375833
+0,5,0,0,1,0,0,561375920
+0,2,0,0,0,37,0,561378202
+0,2,0,0,0,54,0,561379267
+0,3,0,0,0,54,0,561379416
+0,3,0,0,0,37,0,561379495
+
+# click the Create link
+0,6,915,325,0,0,0,561380123
+0,4,0,0,1,0,0,561380233
+0,5,0,0,1,0,0,561380313
+
+# select Geanie and ctrl-v return
+0,6,625,23,0,0,0,561383319
+0,4,0,0,1,0,0,561383675
+0,5,0,0,1,0,0,561383815
+0,2,0,0,0,37,0,561385899
+0,2,0,0,0,55,0,561386546
+0,3,0,0,0,55,0,561386690
+0,3,0,0,0,37,0,561386758
+0,2,0,0,0,36,0,561388373
+0,3,0,0,0,36,0,561388466
+
+# select file manager from menu bar
+0,6,703,21,0,0,0,561390487
+0,4,0,0,1,0,0,561390536
+0,5,0,0,1,0,0,561390664
+
+# select the file and right click
+0,6,665,459,0,0,0,561393365
+0,4,0,0,3,0,0,561393531
+0,5,0,0,3,0,0,561393794
+
+# select move to trash
+0,6,708,700,0,0,0,561395477
+0,4,0,0,1,0,0,561396508
+0,5,0,0,1,0,0,561396649
+
+# pop-up for confirmation
+0,21,0,0,0,0,0,561396673
+NEW-WINDOW:579,624:18898327,18898327,20979253,0,0,0:2x30+441+113:0,0:Confirm
+0,21,0,0,0,0,0,561396673
+0,21,0,0,0,0,0,561396673
+0,21,0,0,0,0,0,561396673
+0,21,0,0,0,0,0,561396673
+
+# hit enter to select Yes
+0,2,0,0,0,36,0,561398844
+0,3,0,0,0,36,0,561398946
+
+
