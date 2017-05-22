@@ -5,15 +5,15 @@ import requests, lxml.html, sys, logging, logging.handlers, smtplib
 # set up the logger
 log = logging.getLogger('jigidize')
 hdlr = logging.handlers.RotatingFileHandler('/home/pi/Documents/logs/jigidize.log',\
-                                            'a',20000,7)
+                                            'a',2000000,7)
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 hdlr.setFormatter(formatter)
 log.addHandler(hdlr)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 log.info("__________Blank Space_________")
 log.info("##### Starting to Jigidize #####")
 
-testing = 1
+testing = 0
 
 if testing:
     log.info("Testing")
@@ -38,8 +38,8 @@ puzzleUrl = "https://www.jigidi.com/jigsaw-puzzle/"
 setBookmarkUrl = "https://www.jigidi.com/ajax/set_bookmark.php"
 setFollowUrl = "https://www.jigidi.com/ajax/notify.php"
 addCommentUrl = "https://www.jigidi.com/ajax/comment_add.php"
-puzzleListFile = "/home/pi/Documents/python/jigidi.txt"
-username = 'Minimart64'
+puzzleListFile = "/home/pi/Documents/logs/puzzles"
+username = 'Minimart'
 password = 'worthing'
 
 # some global variables
