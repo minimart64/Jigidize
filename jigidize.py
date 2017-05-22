@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+# add preferences file
+# add more input arguments (-u user, -p publish, etc.)
+# scrape my puzzles to add newly created from xnee -x and a number
+
 import requests, lxml.html, sys, logging, logging.handlers, smtplib
 
 # set up the logger
@@ -15,37 +19,50 @@ log.info("##### Starting to Jigidize #####")
 
 # Change these when switching from dev to prod
 testing = 1
-puzzleListFile = "/home/pi/Documents/python/jigidi.txt" # dev pi
-#puzzleListFile = "/home/pi/Documents/Photos/jigidi" # prod pi
+puzzleListFile = "/home/pi/Documents/logs/puzzles" # private
+publishListFile = "/home/pi/Documents/logs/puzzlesPub" # prod pi
 username = 'Minimart64'
 password = 'worthing'
 
 if testing:
     log.info("Testing")
 
-# check to see if a userUrl was passed in with the command
-try:
-    inputValue = sys.argv[1]
-    if inputValue[:5] == 'https': # if so it's a whole url
-        userUrl = inputValue 
-    else: # if not, assume it's just the name
-        userUrl = 'https://www.jigidi.com/user/' + inputValue
-    log.info("passed in value " + inputValue)
-except:
-    userUrl = None
-    log.info("no input provided")
-finally:
-    pass
+# check to see if arguments were passed in with the command
+inputValues = sys.argv
+userUrl = None
+publishCount = newPuzzleCount = 0
+
+if len(inputValues) > 1: # extra arguements were entered
+    log.info("passed in values " + inputValues[1:])
+    if inputValues[1] == '-u': # next argument should be a username
+        if len(inputValues) > 2:
+            userUrl = 'https://www.jigidi.com/user/' + inputValues[2]
+            log.info("Username provided: " + inputValues[2])
+        else:
+            log.info("User selected, but no username provided")
+    if inputValues[1] == '-p': # publish some puzzles
+        if len(inputValues) > 2:
+            publishCount = int(inputValues[2])
+        else:
+            publishCount = 2
+        log.info("Publishing " + str(publishCount) + " puzzles")
+    if inputValues[1] == '-x': # xnee just finished making more puzzles
+        if len(inputValues) > 2:
+            newPuzzleCount = int(inputValues[2])
+        else:
+            newPuzzleCount = 1
+        log.info("New Puzzles added: " + str(newPuzzleCount))
+    
 
 baseUrl = "https://www.jigidi.com"
-logInUrl = "https://www.jigidi.com/login.php"
-puzzleUrl = "https://www.jigidi.com/jigsaw-puzzle/"
-createdUrl = "https://www.jigidi.com/created.php?id="
-setBookmarkUrl = "https://www.jigidi.com/ajax/set_bookmark.php"
-setFollowUrl = "https://www.jigidi.com/ajax/notify.php"
-addCommentUrl = "https://www.jigidi.com/ajax/comment_add.php"
-publishUrl = "https://www.jigidi.com/ajax/change_puzzle.php"
-
+logInUrl = baseUrl + "/login.php"
+puzzleUrl = baseUrl + "/jigsaw-puzzle/"
+createdUrl = baseUrl + "/created.php?id="
+myPuzzlesUrl = baseUrl + "/created-puzzles.php"
+setBookmarkUrl = baseUrl + "/ajax/set_bookmark.php"
+setFollowUrl = baseUrl + "/ajax/notify.php"
+addCommentUrl = baseUrl + "/ajax/comment_add.php"
+publishUrl = baseUrl + "/ajax/change_puzzle.php"
 
 # some global variables
 true = 1
@@ -55,6 +72,7 @@ addCodes = []
 followCodes = []
 totalAdds = totalFollows = totalComments = 0
 fileEmpty = 0
+
 
 def creatorCheck(puzzlePage):
     # check to see if it was created by me - returns true or false
@@ -96,7 +114,7 @@ def lastCommentCheck(puzzlePage):
             return false
     else:
         log.debug("No comments on this puzzle")
-        return false
+        return true # it's my puzzle and no one has commented
 
 def followCheck(puzzlePage):
     # check to see if it's followed - returns true or false
@@ -168,7 +186,6 @@ def getGKey(html):
             g_key = script[start+9:start+15]
             log.debug("g_key is " + g_key)
             return g_key
-
 
 def addComment(puzzlePage, puzzleId):
     global fileEmpty, totalComments
@@ -313,6 +330,7 @@ def scrapePuzzle(puzzCode):
 
 def publishPuzzle(puzzCode):
     # publish a puzzle so anyone can solve it
+    global fileEmpty
     log.info("publishing puzzle " + puzzCode)
     puzzlePage = s.get(createdUrl + puzzCode)
     log.debug("opened page " + puzzlePage.url)
@@ -320,10 +338,16 @@ def publishPuzzle(puzzCode):
     g_key = getGKey(html)
     key = g_key + "#info form_1"
     titleSet = html.xpath(r'//input[@name="title"]')
-    print(titleSet)
     title = titleSet[0].attrib['value']
-    print("Title: " + title)
-    description = 'test'
+    description = ''
+    if not fileEmpty:
+        for i in range(2):
+            puzzle = puzzleFile.readline().split('\n')
+            code = puzzle[0][-8:]
+            if code:
+                description += puzzleUrl + code + '\n'
+            else:
+                fileEmpty = 1
     keywords = 'test'
     form = {'title':title, 'description':description, 'credit_name':"",\
             'credit_link':"", 'info_message':"", 'publish':'on', 'category':\
@@ -337,7 +361,77 @@ def publishPuzzle(puzzCode):
     else:
         log.warning("tried and failed to publish puzzle " + puzzleId)
         return false
-    
+
+def publishLoop(counter):
+    # Loop to publish puzzles from the file
+    global fileEmpty
+    publishList = open(publishListFile, 'r')
+    log.debug("publishing puzzles")
+    for i in range(publishCount):
+        if not fileEmpty:
+            puzzle = publishList.readline().split('\n')
+            code = puzzle[0][-8:]
+            if code:
+                publishPuzzle(code)
+            else:
+                fileEmpty = 1
+    writeList(publishList, publishListFile)
+
+def scrapeNewPuzzles(counter):
+    # get codes from newly created puzzles
+    log.info("scraping " + counter + " new puzzles")
+    page = s.get(myPuzzlesUrl)
+    pageNum = 1
+    codeCount = 1
+    addCodes = 0
+    while codeCount > 0 and addCodes <= counter:
+        if page.status_code == requests.codes.ok:
+            # need to loop through codes and add until we reach counter
+            page_html = lxml.html.fromstring(page.text)
+            puzzleLinks = page_html.xpath(r'//div[@data-id]') 
+            puzzleCodes = [i.attrib['data-id'] for i in puzzleLinks]
+            codeCount = len(puzzleCodes)
+            followCodes.extend(puzzleCodes)
+            pageNum += 1
+            page = s.get(userUrl + '/' + str(pageNum))
+        else: codeCount = 0
+        addCodes += codeCount
+    log.info("Added " + str(addCodes) + " followCodes")
+
+def writeList(listVar, listFileName):
+    # write out the puzzle file list
+    puzzlesLeft = listVar.read()
+    listVar.close()
+    writeOut = open(listFileName, 'w')
+    writeOut.write(puzzlesLeft)
+    writeOut.close()
+
+def sendEmail():
+    # send completion notification
+    global totalAdds, totalFollows, totalComments, fileEmpty
+    sender = 'raspidude@comcast.net'
+    smtpPassword = 'Ra5pb3rry'
+    recievers = ['minimart@me.com']
+    mailHeader = """From: Raspberry Pi <raspidude@comcast.net>
+to: Minimart <minimart@me.com>
+Subject: Report
+"""
+    mailBody = str(totalAdds) + " A - " + str(totalFollows) + ' F - ' + \
+                str(totalComments) + " C"
+    if fileEmpty: # the file of puzzles for comments is empty
+        fileWarning = " and the file is empty"
+    else:
+        fileWarning = ""
+    msg = mailHeader + mailBody + fileWarning
+    log.debug("Mail message: " + msg)
+    mailServer = smtplib.SMTP('smtp.comcast.net', 587)
+    mailServer.login(sender, smtpPassword)
+    mailServer.starttls()
+    try:
+        mailServer.sendmail(sender, recievers, msg)
+        log.debug('Mail sent')
+    except:
+        log.warning('Mail not sent')
 
 ## actual code starts here ##
 puzzleFile = open(puzzleListFile, 'r') # open the puzzle list file
@@ -354,6 +448,10 @@ if not(testing):
     scrapeNotifs()
 if userUrl:
     scrapeUser(userUrl)
+if publishCount:
+    publishLoop(publishCount)
+if newPuzzleCount:
+    scrapeNewPuzzles(newPuzzleCount)
     
 if testing:
     publishPuzzle('26ZCX2BQ') #pumpkin in her jacket
@@ -376,36 +474,11 @@ log.info("Total Adds:" + str(totalAdds))
 log.info("Total Follows:" + str(totalFollows))
 log.info("Total Comments:" + str(totalComments))
 
-# write out the puzzle file list
-puzzlesLeft = puzzleFile.read()
-puzzleFile.close()
-puzzleFile = open(puzzleListFile, 'w')
-puzzleFile.write(puzzlesLeft)
-puzzleFile.close()
+writeList(puzzleFile, puzzleListFile)
+sendEmail()
 
-# send completion notification
-sender = 'raspidude@comcast.net'
-smtpPassword = 'Ra5pb3rry'
-recievers = ['minimart@me.com']
-mailHeader = """From: Raspberry Pi <raspidude@comcast.net>
-to: Minimart <minimart@me.com>
-Subject: Report
-"""
-mailBody = str(totalAdds) + " A - " + str(totalFollows) + ' F ' + \
-            str(totalComments) + " C"
-if fileEmpty: # the file of puzzles for comments it empty
-    fileWarning = " and the file is empty"
-else:
-    fileWarning = ""
-msg = mailHeader + mailBody + fileWarning
+# all done
 
-mailServer = smtplib.SMTP('smtp.comcast.net', 587)
-mailServer.login(sender, smtpPassword)
-mailServer.starttls()
-try:
-    mailServer.sendmail(sender, recievers, msg)
-    log.debug('Mail sent')
-except:
-    log.warning('Mail not sent')
+
 
 
