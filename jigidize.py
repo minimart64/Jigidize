@@ -167,7 +167,6 @@ def addComment(puzzlePage, puzzleId):
         if start > 0:
             g_key = script[start+9:start+15]
             log.debug("g_key is " + g_key)
-            print("g_key is " + g_key)
     log.debug("Figuring out g_count")
     commentors = html.xpath(r'//a//span[@itemprop="creator"]/child::text()')
     g_count = len(commentors) # don't need to add one since puzzle creator is in this list
@@ -181,7 +180,7 @@ def addComment(puzzlePage, puzzleId):
         form = {'id':puzzleId,'type':'puzzle','message':commentText,'request_key':g_request_key}
         response = s.post(addCommentUrl, data = form, headers = headers)
         if response.status_code == requests.codes.ok:
-            log.debug("posted comment on " + puzzleId)
+            log.info("posted comment on " + puzzleId)
             addCodes.append(code)
             totalComments += 1
             return true
@@ -242,6 +241,7 @@ def scrapeNotifs():
             if len(part.strip()) == 8 and not(part.islower()):
                 followCodes.append(part)
     followCodes.extend(puzzleCodes)
+    log.info("Added " + str(len(puzzleCodes)) + " followCodes")
 
 def scrapeUser(userUrl):
     # get codes from a user's pages to follow
@@ -265,6 +265,7 @@ def scrapeUser(userUrl):
  
 def scrapePuzzle(puzzCode):
     # get codes from the description and comments of a puzzle page
+    log.info("Scraping " + puzzCode)
     puzzle = s.get(puzzleUrl + puzzCode)
     ######only here for testing#####
     if testing:
@@ -325,12 +326,12 @@ if testing:
     #scrapePuzzle('US8EUSFG') #Hubble
     #scrapeUser('https://www.jigidi.com/user/Spiritual')
 
-log.debug("Follow codes at start of followCode loop " + str(len(followCodes)))
+log.info("Follow codes at start of followCode loop " + str(len(followCodes)))
 log.debug(followCodes)
 for code in followCodes:
     if followPuzzle(code):
         scrapePuzzle(code)
-log.debug("Add codes at start of addCode loop: " + str(len(addCodes)))
+log.info("Add codes at start of addCode loop: " + str(len(addCodes)))
 log.debug(addCodes)
 
 for code in addCodes:
