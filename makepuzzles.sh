@@ -5,6 +5,6 @@
 
 for i in $(ls ~/Documents/Photos); do
 cnee --replay --file cneeScript.xns -force-core-replay
-echo $i
+mv $i ~/Documents/cneed/
 done
 

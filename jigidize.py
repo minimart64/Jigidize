@@ -5,7 +5,7 @@ import requests, lxml.html, sys, logging, logging.handlers, smtplib
 # set up the logger
 log = logging.getLogger('jigidize')
 hdlr = logging.handlers.RotatingFileHandler('/home/pi/Documents/logs/jigidize.log',\
-                                            'a',2000000,7)
+                                            'a',200000,7)
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 hdlr.setFormatter(formatter)
 log.addHandler(hdlr)
@@ -302,7 +302,7 @@ def scrapePuzzle(puzzCode):
                     addCodes.append(part)
                 finally:
                     pass
-    log.debug(addCodes)
+    #log.debug(addCodes)
 
 ## actual code starts here ##
 puzzleFile = open(puzzleListFile, 'r') # open the puzzle list file
@@ -368,7 +368,7 @@ mailServer.login(sender, smtpPassword)
 mailServer.starttls()
 try:
     mailServer.sendmail(sender, recievers, msg)
-    log.debug('Mail sent')
+    log.info('Mail sent')
 except:
     log.warning('Mail not sent')
 
