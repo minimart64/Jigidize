@@ -327,8 +327,7 @@ def scrapePuzzle(puzzCode):
                     addCodes.append(part)
                 finally:
                     pass
-    log.debug(addCodes)
-
+    
 def publishPuzzle(puzzCode):
     # publish a puzzle so anyone can solve it
     global fileEmpty
@@ -469,7 +468,7 @@ elif newPuzzleCount:
     puzzleFile = open(puzzleListFile, 'r') # open the puzzle list file
     
 if testing:
-    log.info("testing")
+    log.info("Testing")
     #publishPuzzle('26ZCX2BQ') #pumpkin in her jacket
     #scrapePuzzle('26ZCX2BQ') #pumpkin in her jacket
     #scrapePuzzle('US8EUSFG') #Hubble
