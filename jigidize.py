@@ -9,11 +9,11 @@ import requests, lxml.html, sys, logging, logging.handlers, smtplib
 # set up the logger
 log = logging.getLogger('jigidize')
 hdlr = logging.handlers.RotatingFileHandler('/home/pi/Documents/logs/jigidize.log',\
-                                            'a',20000,7)
+                                            'a',200000,7)
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 hdlr.setFormatter(formatter)
 log.addHandler(hdlr)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 log.info("__________Blank Space_________")
 log.info("##### Starting to Jigidize #####")
 
@@ -23,6 +23,7 @@ puzzleListFile = "/home/pi/Documents/logs/puzzles" # private
 publishListFile = "/home/pi/Documents/logs/puzzlesPub" # prod pi
 username = 'Minimart64'
 password = 'worthing'
+
 
 if testing:
     log.info("Testing")
@@ -64,6 +65,7 @@ setBookmarkUrl = baseUrl + "/ajax/set_bookmark.php"
 setFollowUrl = baseUrl + "/ajax/notify.php"
 addCommentUrl = baseUrl + "/ajax/comment_add.php"
 publishUrl = baseUrl + "/ajax/change_puzzle.php"
+
 
 # some global variables
 true = 1
@@ -206,7 +208,7 @@ def addComment(puzzlePage, puzzleId):
         form = {'id':puzzleId,'type':'puzzle','message':commentText,'request_key':g_request_key}
         response = s.post(addCommentUrl, data = form, headers = headers)
         if response.status_code == requests.codes.ok:
-            log.debug("posted comment on " + puzzleId)
+            log.info("posted comment on " + puzzleId)
             addCodes.append(code)
             totalComments += 1
             return true
@@ -267,6 +269,7 @@ def scrapeNotifs():
             if len(part.strip()) == 8 and not(part.islower()):
                 followCodes.append(part)
     followCodes.extend(puzzleCodes)
+    log.info("Added " + str(len(puzzleCodes)) + " followCodes")
 
 def scrapeUser(userUrl):
     # get codes from a user's pages to follow
@@ -290,6 +293,7 @@ def scrapeUser(userUrl):
  
 def scrapePuzzle(puzzCode):
     # get codes from the description and comments of a puzzle page
+    log.info("Scraping " + puzzCode)
     puzzle = s.get(puzzleUrl + puzzCode)
     ######only here for testing#####
     if testing:
@@ -474,12 +478,12 @@ if testing:
     #scrapePuzzle('US8EUSFG') #Hubble
     #scrapeUser('https://www.jigidi.com/user/Spiritual')
 
-log.debug("Follow codes at start of followCode loop " + str(len(followCodes)))
+log.info("Follow codes at start of followCode loop " + str(len(followCodes)))
 log.debug(followCodes)
 for code in followCodes:
     if followPuzzle(code):
         scrapePuzzle(code)
-log.debug("Add codes at start of addCode loop: " + str(len(addCodes)))
+log.info("Add codes at start of addCode loop: " + str(len(addCodes)))
 log.debug(addCodes)
 
 for code in addCodes:
@@ -493,7 +497,3 @@ writeList(puzzleFile, puzzleListFile)
 sendEmail()
 
 # all done
-
-
-
-
