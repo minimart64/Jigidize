@@ -33,7 +33,8 @@ userUrl = None
 publishCount = newPuzzleCount = 0
 
 if len(inputValues) > 1: # extra arguements were entered
-    log.info("passed in values " + inputValues[1:])
+    log.info("passed in values:")
+    log.info(inputValues)
     if inputValues[1] == '-u': # next argument should be a username
         if len(inputValues) > 2:
             userUrl = 'https://www.jigidi.com/user/' + inputValues[2]
@@ -51,14 +52,14 @@ if len(inputValues) > 1: # extra arguements were entered
             newPuzzleCount = int(inputValues[2])
         else:
             newPuzzleCount = 1
-        log.info("New Puzzles added: " + str(newPuzzleCount))
+        log.info("Adding New Puzzles: " + str(newPuzzleCount))
     
 
 baseUrl = "https://www.jigidi.com"
 logInUrl = baseUrl + "/login.php"
 puzzleUrl = baseUrl + "/jigsaw-puzzle/"
 createdUrl = baseUrl + "/created.php?id="
-myPuzzlesUrl = baseUrl + "/created-puzzles.php"
+myPuzzlesUrl = baseUrl + "/created_puzzles.php"
 setBookmarkUrl = baseUrl + "/ajax/set_bookmark.php"
 setFollowUrl = baseUrl + "/ajax/notify.php"
 addCommentUrl = baseUrl + "/ajax/comment_add.php"
@@ -379,24 +380,36 @@ def publishLoop(counter):
 
 def scrapeNewPuzzles(counter):
     # get codes from newly created puzzles
-    log.info("scraping " + counter + " new puzzles")
+    # Need to ensure puzzleFile isn't open before this
+    log.info("scraping " + str(counter) + " new puzzles")
     page = s.get(myPuzzlesUrl)
     pageNum = 1
     codeCount = 1
     addCodes = 0
-    while codeCount > 0 and addCodes <= counter:
+    while codeCount > 0 and addCodes < counter:
         if page.status_code == requests.codes.ok:
             # need to loop through codes and add until we reach counter
             page_html = lxml.html.fromstring(page.text)
             puzzleLinks = page_html.xpath(r'//div[@data-id]') 
             puzzleCodes = [i.attrib['data-id'] for i in puzzleLinks]
+            log.debug(puzzleCodes)
             codeCount = len(puzzleCodes)
-            followCodes.extend(puzzleCodes)
+            log.debug("Code Count = " + str(codeCount))
+            while addCodes < counter:
+                code = puzzleCodes[addCodes]
+                log.debug("Add Codes = " + str(addCodes))
+                log.debug("Code: " + puzzleCodes[addCodes])
+                # append code to the file
+                with open(puzzleListFile, 'a') as puzzleFile:
+                    puzzleFile.write(code + '\n')
+                addCodes += 1
             pageNum += 1
-            page = s.get(userUrl + '/' + str(pageNum))
-        else: codeCount = 0
-        addCodes += codeCount
-    log.info("Added " + str(addCodes) + " followCodes")
+            page = s.get(myPuzzlesUrl + '?p=' + str(pageNum))
+        else: 
+            codeCount = 0
+            log.warning("My Puzzles page failed to load")
+    #puzzleFile.close
+    log.info("Added " + str(addCodes) + " new puzzles")
 
 def writeList(listVar, listFileName):
     # write out the puzzle file list
@@ -434,7 +447,8 @@ Subject: Report
         log.warning('Mail not sent')
 
 ## actual code starts here ##
-puzzleFile = open(puzzleListFile, 'r') # open the puzzle list file
+if not newPuzzleCount:
+    puzzleFile = open(puzzleListFile, 'r') # open the puzzle list file
 
 s = requests.Session()# open a session and login
 start = s.get(baseUrl) # starts the secure session - gets cookies
@@ -448,13 +462,15 @@ if not(testing):
     scrapeNotifs()
 if userUrl:
     scrapeUser(userUrl)
-if publishCount:
+elif publishCount:
     publishLoop(publishCount)
-if newPuzzleCount:
+elif newPuzzleCount:
     scrapeNewPuzzles(newPuzzleCount)
+    puzzleFile = open(puzzleListFile, 'r') # open the puzzle list file
     
 if testing:
-    publishPuzzle('26ZCX2BQ') #pumpkin in her jacket
+    log.info("testing")
+    #publishPuzzle('26ZCX2BQ') #pumpkin in her jacket
     #scrapePuzzle('26ZCX2BQ') #pumpkin in her jacket
     #scrapePuzzle('US8EUSFG') #Hubble
     #scrapeUser('https://www.jigidi.com/user/Spiritual')
