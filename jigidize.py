@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 
 # add preferences file
-# add more input arguments (-u user, -p publish, etc.)
-# scrape my puzzles to add newly created from xnee -x and a number
 
-import requests, lxml.html, sys, logging, logging.handlers, smtplib
+import requests, lxml.html, sys, logging, logging.handlers, smtplib, configparser
 
 # set up the logger
 log = logging.getLogger('jigidize')
@@ -13,17 +11,30 @@ hdlr = logging.handlers.RotatingFileHandler('/home/pi/Documents/logs/jigidize.lo
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 hdlr.setFormatter(formatter)
 log.addHandler(hdlr)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 log.info("__________Blank Space_________")
 log.info("##### Starting to Jigidize #####")
 
-# Change these when switching from dev to prod
-testing = 1
-puzzleListFile = "/home/pi/Documents/logs/puzzles" # private
-publishListFile = "/home/pi/Documents/logs/puzzlesPub" # prod pi
-username = 'Minimart64'
-password = 'worthing'
+# read in the configuration file
+config = configparser.SafeConfigParser()
+config.read('/var/lib/jigidize/config.cfg')
+try:
+    testing = int(config.get('settings','testing'))
+    username = config.get('credentials','username')
+    password = config.get('credentials','password')
+    sender = config.get('credentials','sender')
+    smtpPassword = config.get('credentials','smtpPassword')
+    mailHeader = config.get('settings','mailHeader')
+    reciever = config.get('settings','reciever')
+except:
+    print("Configuration file error - the program can't proceed until it is corrected")
+    raise SystemExit
+finally:
+    pass
 
+# Change these when switching from dev to prod
+puzzleListFile = "/home/pi/Documents/logs/puzzles" # private
+publishListFile = "/home/pi/Documents/logs/puzzlesPublic" # prod pi
 
 if testing:
     log.info("Testing")
@@ -42,18 +53,21 @@ if len(inputValues) > 1: # extra arguements were entered
             log.info("Username provided: " + inputValues[2])
         else:
             log.info("User selected, but no username provided")
-    if inputValues[1] == '-p': # publish some puzzles
+    elif inputValues[1] == '-p': # publish some puzzles
         if len(inputValues) > 2:
             publishCount = int(inputValues[2])
         else:
             publishCount = 2
         log.info("Publishing " + str(publishCount) + " puzzles")
-    if inputValues[1] == '-x': # xnee just finished making more puzzles
+    elif inputValues[1] == '-x': # xnee just finished making more puzzles
         if len(inputValues) > 2:
             newPuzzleCount = int(inputValues[2])
         else:
             newPuzzleCount = 1
         log.info("Adding New Puzzles: " + str(newPuzzleCount))
+    else:
+        print("invalid argument")
+        raise SystemExit
     
 
 baseUrl = "https://www.jigidi.com"
@@ -335,7 +349,7 @@ def scrapePuzzle(puzzCode):
 def publishPuzzle(puzzCode):
     # publish a puzzle so anyone can solve it
     global fileEmpty
-    log.info("publishing puzzle " + puzzCode)
+    log.debug("publishing puzzle " + puzzCode)
     puzzlePage = s.get(createdUrl + puzzCode)
     log.debug("opened page " + puzzlePage.url)
     html = lxml.html.fromstring(puzzlePage.text)
@@ -359,7 +373,7 @@ def publishPuzzle(puzzCode):
     headers = {'Referer':puzzlePage.url}
     response = s.post(publishUrl, data = form, headers = headers)
     if response.status_code == requests.codes.ok:
-        log.debug("published puzzle " + puzzCode)
+        log.info("published puzzle " + puzzCode)
         addCodes.append(puzzCode)
         return true
     else:
@@ -424,14 +438,10 @@ def writeList(listVar, listFileName):
 
 def sendEmail():
     # send completion notification
-    global totalAdds, totalFollows, totalComments, fileEmpty
-    sender = 'raspidude@comcast.net'
-    smtpPassword = 'Ra5pb3rry'
-    recievers = ['minimart@me.com']
-    mailHeader = """From: Raspberry Pi <raspidude@comcast.net>
-to: Minimart <minimart@me.com>
-Subject: Report
-"""
+    log.debug("starting to send email")
+    global totalAdds, totalFollows, totalComments, fileEmpty, sender, \
+            smtpPassword, mailHeader
+    recievers = [reciever]
     mailBody = str(totalAdds) + " A - " + str(totalFollows) + ' F - ' + \
                 str(totalComments) + " C"
     if fileEmpty: # the file of puzzles for comments is empty
@@ -474,7 +484,7 @@ elif newPuzzleCount:
 if testing:
     log.info("Testing")
     #publishPuzzle('26ZCX2BQ') #pumpkin in her jacket
-    #scrapePuzzle('26ZCX2BQ') #pumpkin in her jacket
+    scrapePuzzle('26ZCX2BQ') #pumpkin in her jacket
     #scrapePuzzle('US8EUSFG') #Hubble
     #scrapeUser('https://www.jigidi.com/user/Spiritual')
 
