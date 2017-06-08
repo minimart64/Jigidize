@@ -13,56 +13,6 @@ log.setLevel(logging.DEBUG)
 log.info("__________Blank Space_________")
 log.info("##### Starting to Jigidize #####")
 
-# read in the configuration file
-# try to open the file, if it's not there, create one
-# add -c switch to allow editing of the file
-config = configparser.SafeConfigParser()
-config.read('/var/lib/jigidize/config.cfg')
-try:
-    testing = int(config.get('settings','testing'))
-    username = config.get('credentials','username')
-    password = config.get('credentials','password')
-    sender = config.get('credentials','sender')
-    smtpPassword = config.get('credentials','smtpPassword')
-    mailHeader = config.get('settings','mailHeader')
-    reciever = config.get('settings','reciever')
-    smtpServer = config.get('settings','smtpServer')
-except:
-    log.info("Configuration file error - recreating the file")
-    print("There was a proplem with the configuration file, it needs to be recreated")
-    config = configparser.SafeConfigParser()
-    config.add_section("credentials")
-    username = input("Jigidi Username?")
-    config.set('credentials','username',username)
-    password = input("Jigidi Password?")
-    config.set('credentials','password',password)
-    sender = input("Sender E-Mail Address?")
-    config.set('credentials','sender',sender)
-    smtpPassword = input("SMTP Password?")
-    config.set('credentials','smtpPassword',smtpPassword)
-    config.add_section('settings')
-    config.set('settings','testing','1')
-    config.set('settings','senderEmail',sender)
-    reciever = input("Email address of Reciever?")
-    config.set('settings','reciever',reciever)
-    smtpServer = input("SMTP Server address?")
-    config.set('settings','smtpServer',smtpServer)
-    config.set('settings','mailHeader',"""From: Raspberry Pi <%(senderEmail)s>
-    to: %(username)s <%(reciever)s>
-    Subject: Report
-    """)
-    with open('/var/lib/jigidize/config.cfg','w') as configFile:
-        config.write(configFile)
-    raise SystemExit
-finally:
-    pass
-
-puzzleListFile = "/home/pi/Documents/logs/puzzles" # private
-publishListFile = "/home/pi/Documents/logs/puzzlesPublic" # prod pi
-
-if testing:
-    log.info("Testing")
-
 # check to see if arguments were passed in with the command
 inputValues = sys.argv
 userUrl = None
@@ -100,6 +50,49 @@ if len(inputValues) > 1: # extra arguements were entered
         raise SystemExit
     
 
+# read in the configuration file
+# try to open the file, if it's not there, create one
+# add -c switch to allow editing of the file
+config = configparser.SafeConfigParser()
+config.read('/var/lib/jigidize/config.cfg')
+try:
+    testing = int(config.get('settings','testing'))
+    username = config.get('credentials','username')
+    password = config.get('credentials','password')
+    sender = config.get('credentials','sender')
+    smtpPassword = config.get('credentials','smtpPassword')
+    reciever = config.get('settings','reciever')
+    smtpServer = config.get('settings','smtpServer')
+except:
+    log.info("Configuration file error - recreating the file")
+    print("There was a proplem with the configuration file, it needs to be recreated")
+    config = configparser.SafeConfigParser()
+    config.add_section("credentials")
+    username = input("Jigidi Username?")
+    config.set('credentials','username',username)
+    password = input("Jigidi Password?")
+    config.set('credentials','password',password)
+    sender = input("Sender E-Mail Address?")
+    config.set('credentials','sender',sender)
+    smtpPassword = input("SMTP Password?")
+    config.set('credentials','smtpPassword',smtpPassword)
+    config.add_section('settings')
+    config.set('settings','testing','1')
+    config.set('settings','senderEmail',sender)
+    reciever = input("Email address of Reciever?")
+    config.set('settings','reciever',reciever)
+    smtpServer = input("SMTP Server address?")
+    config.set('settings','smtpServer',smtpServer)
+    config.set('settings','mailHeader',"From: Raspberry Pi <%(senderEmail)s>\nto: %(username)s <%(reciever)s>\nSubject: Report\n")
+    with open('/var/lib/jigidize/config.cfg','w') as configFile:
+        config.write(configFile)
+finally:
+    pass
+
+puzzleListFile = "/home/pi/Documents/logs/puzzles" # private
+publishListFile = "/home/pi/Documents/logs/puzzlesPublic" # prod pi
+
+# URLs
 baseUrl = "https://www.jigidi.com"
 logInUrl = baseUrl + "/login.php"
 puzzleUrl = baseUrl + "/jigsaw-puzzle/"
@@ -471,7 +464,9 @@ def sendEmail():
     # send completion notification
     log.debug("starting to send email")
     global totalAdds, totalFollows, totalComments, fileEmpty, sender, \
-            smtpPassword, mailHeader, smtpServer
+            smtpPassword, smtpServer
+    mailHeader = "From: Raspberry Pi <" + sender + ">\nto: " + username + \
+    " <" + reciever + ">\nSubject: Report\n"
     recievers = [reciever]
     mailBody = str(totalAdds) + " A - " + str(totalFollows) + ' F - ' + \
                 str(totalComments) + " C"
