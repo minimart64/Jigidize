@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-# add preferences file
-
 import requests, lxml.html, sys, logging, logging.handlers, smtplib, configparser
 
 # set up the logger
@@ -16,6 +14,8 @@ log.info("__________Blank Space_________")
 log.info("##### Starting to Jigidize #####")
 
 # read in the configuration file
+# try to open the file, if it's not there, create one
+# add -c switch to allow editing of the file
 config = configparser.SafeConfigParser()
 config.read('/var/lib/jigidize/config.cfg')
 try:
@@ -26,13 +26,37 @@ try:
     smtpPassword = config.get('credentials','smtpPassword')
     mailHeader = config.get('settings','mailHeader')
     reciever = config.get('settings','reciever')
+    smtpServer = config.get('settings','smtpServer')
 except:
-    print("Configuration file error - the program can't proceed until it is corrected")
+    log.info("Configuration file error - recreating the file")
+    print("There was a proplem with the configuration file, it needs to be recreated")
+    config = configparser.SafeConfigParser()
+    config.add_section("credentials")
+    username = input("Jigidi Username?")
+    config.set('credentials','username',username)
+    password = input("Jigidi Password?")
+    config.set('credentials','password',password)
+    sender = input("Sender E-Mail Address?")
+    config.set('credentials','sender',sender)
+    smtpPassword = input("SMTP Password?")
+    config.set('credentials','smtpPassword',smtpPassword)
+    config.add_section('settings')
+    config.set('settings','testing','1')
+    config.set('settings','senderEmail',sender)
+    reciever = input("Email address of Reciever?")
+    config.set('settings','reciever',reciever)
+    smtpServer = input("SMTP Server address?")
+    config.set('settings','smtpServer',smtpServer)
+    config.set('settings','mailHeader',"""From: Raspberry Pi <%(senderEmail)s>
+    to: %(username)s <%(reciever)s>
+    Subject: Report
+    """)
+    with open('/var/lib/jigidize/config.cfg','w') as configFile:
+        config.write(configFile)
     raise SystemExit
 finally:
     pass
 
-# Change these when switching from dev to prod
 puzzleListFile = "/home/pi/Documents/logs/puzzles" # private
 publishListFile = "/home/pi/Documents/logs/puzzlesPublic" # prod pi
 
@@ -42,7 +66,7 @@ if testing:
 # check to see if arguments were passed in with the command
 inputValues = sys.argv
 userUrl = None
-publishCount = newPuzzleCount = 0
+publishCount = newPuzzleCount = newPubPuzzCount = 0
 
 if len(inputValues) > 1: # extra arguements were entered
     log.info("passed in values:")
@@ -64,6 +88,12 @@ if len(inputValues) > 1: # extra arguements were entered
             newPuzzleCount = int(inputValues[2])
         else:
             newPuzzleCount = 1
+        log.info("Adding New Puzzles: " + str(newPuzzleCount))
+    elif inputValues[1] == '-xp': # xnee just finished making public puzzles
+        if len(inputValues) > 2:
+            newPubPuzzCount = int(inputValues[2])
+        else:
+            newPubPuzzCount = 1
         log.info("Adding New Puzzles: " + str(newPuzzleCount))
     else:
         print("invalid argument")
@@ -395,9 +425,10 @@ def publishLoop(counter):
                 fileEmpty = 1
     writeList(publishList, publishListFile)
 
-def scrapeNewPuzzles(counter):
+def scrapeNewPuzzles(counter, listFile):
     # get codes from newly created puzzles
     # Need to ensure puzzleFile isn't open before this
+    # should put in an explicit check
     log.info("scraping " + str(counter) + " new puzzles")
     page = s.get(myPuzzlesUrl)
     pageNum = 1
@@ -417,7 +448,7 @@ def scrapeNewPuzzles(counter):
                 log.debug("Add Codes = " + str(addCodes))
                 log.debug("Code: " + puzzleCodes[addCodes])
                 # append code to the file
-                with open(puzzleListFile, 'a') as puzzleFile:
+                with open(listFile, 'a') as puzzleFile:
                     puzzleFile.write(code + '\n')
                 addCodes += 1
             pageNum += 1
@@ -440,7 +471,7 @@ def sendEmail():
     # send completion notification
     log.debug("starting to send email")
     global totalAdds, totalFollows, totalComments, fileEmpty, sender, \
-            smtpPassword, mailHeader
+            smtpPassword, mailHeader, smtpServer
     recievers = [reciever]
     mailBody = str(totalAdds) + " A - " + str(totalFollows) + ' F - ' + \
                 str(totalComments) + " C"
@@ -471,22 +502,24 @@ response = s.post(logInUrl, data=form) # send login data
 response.raise_for_status() # raises exception if we didn't log in
 
 # start scraping puzzles
-if not(testing):
-    scrapeNotifs()
 if userUrl:
     scrapeUser(userUrl)
 elif publishCount:
     publishLoop(publishCount)
 elif newPuzzleCount:
-    scrapeNewPuzzles(newPuzzleCount)
+    scrapeNewPuzzles(newPuzzleCount, puzzleListFile)
     puzzleFile = open(puzzleListFile, 'r') # open the puzzle list file
+elif newPubPuzzCount:
+    scrapeNewPuzzles(newPubPuzzCount, publishListFile)
     
 if testing:
     log.info("Testing")
     #publishPuzzle('26ZCX2BQ') #pumpkin in her jacket
-    scrapePuzzle('26ZCX2BQ') #pumpkin in her jacket
+    #scrapePuzzle('26ZCX2BQ') #pumpkin in her jacket
     #scrapePuzzle('US8EUSFG') #Hubble
     #scrapeUser('https://www.jigidi.com/user/Spiritual')
+else:
+    scrapeNotifs()
 
 log.info("Follow codes at start of followCode loop " + str(len(followCodes)))
 log.debug(followCodes)
