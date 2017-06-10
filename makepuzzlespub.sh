@@ -4,9 +4,9 @@
 # loop to repeat cnee call that many times
 # cnee creates the puzzles
 # jigidize then adds the new puzzle codes to the list
-# this one creates private puzzles
+# this one creates public puzzles
 
-cd ~/Documents/Photos
+cd ~/Documents/PhotosPublic
 declare -i count; count=0
 for i in $(ls); do
 mv $i ~/Documents/cneeing/
@@ -17,4 +17,4 @@ echo $count
 done
 
 echo "Jigidizing"
-~/Documents/git/Jigidize/jigidize.py -x $count
+~/Documents/git/Jigidize/jigidize.py -xp $count
