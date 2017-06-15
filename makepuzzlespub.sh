@@ -6,6 +6,9 @@
 # jigidize then adds the new puzzle codes to the list
 # this one creates public puzzles
 
+SAVEIFS=$IFS
+IFS=$(echo -en "\n\b")
+
 cd ~/Documents/PhotosPublic
 declare -i count; count=0
 for i in $(ls); do
@@ -24,3 +27,5 @@ done
 
 echo "Jigidizing"
 ~/Documents/git/Jigidize/jigidize.py -xp $count
+
+IFS=$SAVEIFS
