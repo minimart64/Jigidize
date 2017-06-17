@@ -304,7 +304,7 @@ def scrapeNotifs():
         parts = comment.split('/')
         for part in parts:
             if len(part.strip()) == 8 and not(part.islower()):
-                followCodes.append(part)
+                puzzleCodes.append(part)
     followCodes.extend(puzzleCodes)
     log.info("Added " + str(len(puzzleCodes)) + " followCodes")
 
@@ -389,7 +389,7 @@ def publishPuzzle(puzzCode):
                 description += puzzleUrl + code + '\n'
             else:
                 fileEmpty = 1
-    keywords = 'test'
+    keywords = 'adult'
     form = {'title':title, 'description':description, 'credit_name':"",\
             'credit_link':"", 'info_message':"", 'publish':'on', 'category':\
             3, 'copyright':2, 'keywords':keywords, 'key':key, 'pid':puzzCode}
@@ -433,13 +433,12 @@ def scrapeNewPuzzles(counter, listFile):
             page_html = lxml.html.fromstring(page.text)
             puzzleLinks = page_html.xpath(r'//div[@data-id]') 
             puzzleCodes = [i.attrib['data-id'] for i in puzzleLinks]
-            log.debug(puzzleCodes)
             codeCount = len(puzzleCodes)
-            log.debug("Code Count = " + str(codeCount))
+            log.debug("Puzzles on page " + str(pageNum) + " of my puzzles = " + str(codeCount))
+            log.debug(puzzleCodes)
             while addCodes < counter:
                 code = puzzleCodes[addCodes]
-                log.debug("Add Codes = " + str(addCodes))
-                log.debug("Code: " + puzzleCodes[addCodes])
+                log.debug("Add Codes number " + str(addCodes) + " is " + puzzleCodes[addCodes])
                 # append code to the file
                 with open(listFile, 'a') as puzzleFile:
                     puzzleFile.write(code + '\n')
