@@ -5,11 +5,11 @@ import requests, lxml.html, sys, logging, logging.handlers, smtplib, configparse
 # set up the logger
 log = logging.getLogger('jigidize')
 hdlr = logging.handlers.RotatingFileHandler('/home/pi/Documents/logs/jigidize.log',\
-                                            'a',200000,7)
+                                            'a',500000,7)
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 hdlr.setFormatter(formatter)
 log.addHandler(hdlr)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 log.info("__________Blank Space_________")
 log.info("##### Starting to Jigidize #####")
 
@@ -294,7 +294,7 @@ def followPuzzle(puzzCode):
 def scrapeNotifs():
     # get codes from notifs page
     log.info("scraping notifications")
-    notifs = s.get(baseUrl + '/notifications.php')
+    notifs = s.get(baseUrl + '/notifications.php?all')
     notifs_html = lxml.html.fromstring(notifs.text)
     puzzleLinks = notifs_html.xpath(r'//div[@data-id]') 
     puzzleCodes = [i.attrib['data-id'] for i in puzzleLinks]
@@ -485,9 +485,6 @@ def sendEmail():
         log.warning('Mail not sent')
 
 ## actual code starts here ##
-if not newPuzzleCount:
-    puzzleFile = open(puzzleListFile, 'r') # open the puzzle list file
-
 s = requests.Session()# open a session and login
 start = s.get(baseUrl) # starts the secure session - gets cookies
 login = s.get(logInUrl) # initiates login
@@ -496,23 +493,24 @@ response = s.post(logInUrl, data=form) # send login data
 response.raise_for_status() # raises exception if we didn't log in
 
 # start scraping puzzles
-if userUrl:
-    scrapeUser(userUrl)
-elif publishCount:
-    publishLoop(publishCount)
-elif newPuzzleCount:
+if newPuzzleCount: # passed in -x and a number
     scrapeNewPuzzles(newPuzzleCount, puzzleListFile)
-    puzzleFile = open(puzzleListFile, 'r') # open the puzzle list file
-elif newPubPuzzCount:
+# open the file for comments after adding new ones
+puzzleFile = open(puzzleListFile, 'r') # open the puzzle list file
+
+if userUrl: # passed in a user to scrape
+    scrapeUser(userUrl)
+if publishCount: # passed in -p and a number
+    publishLoop(publishCount)
+if newPubPuzzCount: # passed in -xp and a number
     scrapeNewPuzzles(newPubPuzzCount, publishListFile)
-    
-if testing:
+if testing: # in config file
     log.info("Testing")
     #publishPuzzle('26ZCX2BQ') #pumpkin in her jacket
     #scrapePuzzle('26ZCX2BQ') #pumpkin in her jacket
     #scrapePuzzle('US8EUSFG') #Hubble
     #scrapeUser('https://www.jigidi.com/user/Spiritual')
-else:
+if not testing and not newPubPuzzCount and not newPuzzleCount:
     scrapeNotifs()
 
 log.info("Follow codes at start of followCode loop " + str(len(followCodes)))

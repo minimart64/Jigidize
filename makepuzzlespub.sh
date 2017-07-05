@@ -1,3 +1,5 @@
+# this is part of makepuzzles.sh
+
 #! /bin/bash
 
 # count of files in ~/Documents/Photos
