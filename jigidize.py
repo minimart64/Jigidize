@@ -78,6 +78,7 @@ except:
     config.set('credentials','smtpPassword',smtpPassword)
     config.add_section('settings')
     config.set('settings','testing','1')
+    testing = 1
     config.set('settings','senderEmail',sender)
     reciever = input("Email address of Reciever?")
     config.set('settings','reciever',reciever)
@@ -102,6 +103,7 @@ setBookmarkUrl = baseUrl + "/ajax/set_bookmark.php"
 setFollowUrl = baseUrl + "/ajax/notify.php"
 addCommentUrl = baseUrl + "/ajax/comment_add.php"
 publishUrl = baseUrl + "/ajax/change_puzzle.php"
+notifsUrl = baseUrl + '/notifications.php'
 
 
 # some global variables
@@ -294,7 +296,7 @@ def followPuzzle(puzzCode):
 def scrapeNotifs():
     # get codes from notifs page
     log.info("scraping notifications")
-    notifs = s.get(baseUrl + '/notifications.php?all')
+    notifs = s.get(notifsUrl)
     notifs_html = lxml.html.fromstring(notifs.text)
     puzzleLinks = notifs_html.xpath(r'//div[@data-id]') 
     puzzleCodes = [i.attrib['data-id'] for i in puzzleLinks]
@@ -441,7 +443,7 @@ def scrapeNewPuzzles(counter, listFile):
                 log.debug("Add Codes number " + str(addCodes) + " is " + puzzleCodes[addCodes])
                 # append code to the file
                 with open(listFile, 'a') as puzzleFile:
-                    puzzleFile.write(code + '\n')
+                    puzzleFile.write('\n' + code)
                 addCodes += 1
             pageNum += 1
             page = s.get(myPuzzlesUrl + '?p=' + str(pageNum))
@@ -480,7 +482,7 @@ def sendEmail():
     mailServer.starttls()
     try:
         mailServer.sendmail(sender, recievers, msg)
-        log.debug('Mail sent')
+        log.info('Mail sent')
     except:
         log.warning('Mail not sent')
 
@@ -502,6 +504,7 @@ if userUrl: # passed in a user to scrape
     scrapeUser(userUrl)
 if publishCount: # passed in -p and a number
     publishLoop(publishCount)
+    notifsUrl = baseUrl + '/notifications.php?all' # checks all notifs
 if newPubPuzzCount: # passed in -xp and a number
     scrapeNewPuzzles(newPubPuzzCount, publishListFile)
 if testing: # in config file
