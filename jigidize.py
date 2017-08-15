@@ -482,7 +482,7 @@ def sendEmail():
     mailServer.starttls()
     try:
         mailServer.sendmail(sender, recievers, msg)
-        log.debug('Mail sent')
+        log.info('Mail sent')
     except:
         log.warning('Mail not sent')
 
@@ -504,7 +504,7 @@ if userUrl: # passed in a user to scrape
     scrapeUser(userUrl)
 if publishCount: # passed in -p and a number
     publishLoop(publishCount)
-    notifsUrl += '?all'
+    notifsUrl = baseUrl + '/notifications.php?all' # checks all notifs
 if newPubPuzzCount: # passed in -xp and a number
     scrapeNewPuzzles(newPubPuzzCount, publishListFile)
 if testing: # in config file
