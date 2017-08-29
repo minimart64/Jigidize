@@ -3,6 +3,9 @@
 import requests, lxml.html, sys, logging, logging.handlers, smtplib, configparser
 import time
 
+# TODO make puzzle and puzzlepub files into lists
+# TODO add scrape of my puzzles to bookmark and build puzzle list
+
 # set up the logger
 log = logging.getLogger('jigidize')
 hdlr = logging.handlers.RotatingFileHandler('/home/pi/Documents/logs/jigidize.log',\
@@ -10,7 +13,7 @@ hdlr = logging.handlers.RotatingFileHandler('/home/pi/Documents/logs/jigidize.lo
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 hdlr.setFormatter(formatter)
 log.addHandler(hdlr)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 log.info("__________Blank Space_________")
 log.info("##### Starting to Jigidize #####")
 
@@ -126,7 +129,8 @@ def loadPage(pageUrl):
         log.debug('loading ' + pageUrl)
         startTime = time.time()
         page = s.get(pageUrl)
-        if page.status_code == requests.codes.ok:
+        if page.status_code == requests.codes.ok: # page loaded successfully
+            # need to add a way to handle 'that puzzle couldn't be found'
             loadTime = time.time() - startTime
             loadTimes.append(loadTime)
             log.debug('success: load time = ' + str(loadTime))
@@ -381,6 +385,7 @@ def scrapePuzzle(puzzle, puzzCode):
                 addCodes.index(comm[a:z])
             except:
                 addCodes.append(comm[a:z])
+                log.debug("new code found " + comm[a:z])
             finally:
                 pass
         parts = comm.split() # split by space to find orphan codes
@@ -393,6 +398,7 @@ def scrapePuzzle(puzzle, puzzCode):
                    addCodes.index(part)
                 except:
                     addCodes.append(part)
+                    log.debug("new code found " + part)
                 finally:
                     pass
     
@@ -499,7 +505,9 @@ def sendEmail():
     mailBody = str(totalAdds) + " A - " + str(totalFollows) + ' F - ' + \
                 str(totalComments) + " C"
     if len(loadTimes) > 0:
-        statistics = "\nAverage load time = " + str(sum(loadTimes)/len(loadTimes))
+        statistics = "\nLF - " + str(loadFailCount) + " LE - " + \
+                    str(loadErrCount) + " TPL - " + str(len(loadTimes))
+        statistics += "\nALT = " + str(sum(loadTimes)/len(loadTimes))
     else:
         statistics = ""
     if fileEmpty: # the file of puzzles for comments is empty
