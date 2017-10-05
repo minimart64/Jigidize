@@ -13,12 +13,14 @@ hdlr = logging.handlers.RotatingFileHandler('/home/pi/Documents/logs/jigidize.lo
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 hdlr.setFormatter(formatter)
 log.addHandler(hdlr)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 log.info("__________Blank Space_________")
 log.info("##### Starting to Jigidize #####")
 
 puzzleListFile = "/home/pi/Documents/logs/puzzles" # private
 publishListFile = "/home/pi/Documents/logs/puzzlesPublic" # prod pi
+newPuzzFile = "/home/pi/Documents/logs/newpuzzles" # private
+newPubFile = "/home/pi/Documents/logs/newpuzzlespub" # public
 
 # URLs
 baseUrl = "https://www.jigidi.com"
@@ -47,7 +49,7 @@ loadErrCount = 0
 # check to see if arguments were passed in with the command
 inputValues = sys.argv
 userUrl = None
-publishCount = newPuzzleCount = newPubPuzzCount = 0
+publishCount = newPuzzleCount = newPubPuzzCount = setSize = notif = 0
 
 if len(inputValues) > 1: # extra arguements were entered
     log.info("passed in values:")
@@ -62,6 +64,7 @@ if len(inputValues) > 1: # extra arguements were entered
             publishCount = int(inputValues[2])
         else:
             publishCount = 2
+        notif = True
         log.info("Publishing " + str(publishCount) + " puzzles")
     elif inputValues[1] == '-x': # xnee just finished making more puzzles
         if len(inputValues) > 2:
@@ -77,9 +80,17 @@ if len(inputValues) > 1: # extra arguements were entered
         log.info("Adding New Public Puzzles: " + str(newPuzzleCount))
     elif inputValues[1] == '-d': # deep dive in notifications
         notifsUrl += '?all'
+        notif = True
+    elif inputValues[1] == '-s': # build publish puzzle sets
+        if len(inputValues) > 2:
+            setSize = int(inputValues[2])
+        else:
+            setSize = 3
+        log.info("Building Public Puzzle sets with setSize: " + str(setSize))
     else:
         print("invalid argument")
         raise SystemExit
+else: notif = True
     
 
 # read in the configuration file
@@ -145,6 +156,14 @@ def loadPage(pageUrl):
         return false
     finally:
         pass
+
+def loadList(listFile):
+    log.debug("loading list file " + listFile)
+    textList = open(listFile, 'r') # opens the list file
+    codes = textList.read().split('\n')
+    textList.close
+    log.debug("This list has " + str(len(codes)) + " codes")
+    return codes
 
 def creatorCheck(puzzlePage):
     # check to see if it was created by me - returns true or false
@@ -293,12 +312,13 @@ def addPuzzle(puzzle, puzzCode):
     if puzzle.status_code == requests.codes.ok:
         if followCheck(puzzle):
             log.debug("Puzzle " + puzzCode + " already followed")
+            return false
         else:
             if justBookmark(puzzle, puzzCode) and justFollow(puzzle, puzzCode):
                 log.info("Puzzle " + puzzCode + " added")
             else:
                 log.info("Puzzle " + puzzCode + " add failed")
-        return true
+            return true
     else:
         log.warning("Puzzle " + puzzCode + " did not load")
         return false
@@ -309,7 +329,7 @@ def followPuzzle(puzzle, puzzCode):
     if creatorCheck(puzzle):
         log.debug("this one is mine " + puzzle.url)
         if not(lastCommentCheck(puzzle)):
-            log.debug("and teh last comment isn't mine")
+            log.debug("and the last comment isn't mine")
             addComment(puzzle, puzzCode)
     if puzzle.status_code == requests.codes.ok:
         if justFollow(puzzle, puzzCode):
@@ -414,9 +434,17 @@ def publishPuzzle(puzzCode):
         key = g_key + "#info form_1"
         titleSet = html.xpath(r'//input[@name="title"]')
         title = titleSet[0].attrib['value']
+        descSet = html.xpath(r'//div[@id="description_section"]/child::text()')
         description = ''
+        lines = 0
+        for line in descSet:
+            description += line + '\n'
+            lines += 1
         if not fileEmpty:
-            for i in range(2):
+            adds = max(3-lines, 0)
+            log.debug("description already has " + str(lines) + " lines")
+            log.debug("adding " + str(adds) + " lines")
+            for i in range(adds):
                 puzzle = puzzleFile.readline().split('\n')
                 code = puzzle[0][-8:]
                 if code:
@@ -452,10 +480,50 @@ def publishLoop(counter):
                 fileEmpty = 1
     writeList(publishList, publishListFile)
 
+def createSets(bonusCount):
+    # Loop through the new pub puzzles file and add bounus puzzles to each
+    pubCodes = loadList(newPubFile)
+    log.debug("loaded pubCodes: " + str(len(pubCodes)))
+    log.debug(pubCodes)
+    bonusCodes = loadList(newPuzzFile)
+    log.debug("creating sets")
+    for pubCode in pubCodes:
+        log.debug("building set on puzzle " + pubCode)
+        puzzlePage = loadPage(createdUrl + pubCode)
+        if puzzlePage:
+            log.debug("opened page " + puzzlePage.url)
+            html = lxml.html.fromstring(puzzlePage.text)
+            g_key = getGKey(html)
+            key = g_key + "#info form_1"
+            titleSet = html.xpath(r'//input[@name="title"]')
+            title = titleSet[0].attrib['value']
+            descSet = html.xpath(r'//div[@id="description_section"]/child::text()')
+            description = ''
+            for line in descSet:
+                description += line + '\n'
+            for i in range(bonusCount):
+                bonusCode = bonusCodes.pop(0)
+                description += puzzleUrl + bonusCode + '\n'
+            keywords = 'adult'
+            form = {'title':title, 'description':description, 'credit_name':"",\
+                    'credit_link':"", 'info_message':"", 'publish':'off', 'category':\
+                    3, 'copyright':2, 'keywords':keywords, 'key':key, 'pid':pubCode}
+            headers = {'Referer':puzzlePage.url}
+            response = s.post(publishUrl, data = form, headers = headers)
+            if response.status_code == requests.codes.ok:
+                log.info("bult set on puzzle " + pubCode)
+            else:
+                log.warning("tried and failed to build set on puzzle " + puzzleId)
+    # writeList(publishList, newPubFile)
+    writeOut(bonusCodes, newPuzzFile)
+    # need to write out a file with nothing in it
+
 def scrapeNewPuzzles(counter, listFile):
     # get codes from newly created puzzles
     # Need to ensure puzzleFile isn't open before this
     # should put in an explicit check
+    # add try open file with puzzle name in cneed folder, if its there, add code,
+    # delete the file and continue, if its not there, then stop adding
     log.info("scraping " + str(counter) + " new puzzles")
     page = loadPage(myPuzzlesUrl)
     if page:
@@ -494,6 +562,14 @@ def writeList(listVar, listFileName):
     writeOut.write(puzzlesLeft)
     writeOut.close()
 
+def writeOut(codeList, listFile):
+    codeText = '\n'.join(codeList)
+    # print(codeText)
+    # write out the puzzle file list
+    fileOut = open(listFile, 'w')
+    fileOut.write(codeText)
+    fileOut.close()
+
 def sendEmail():
     # send completion notification
     log.debug("starting to send email")
@@ -505,8 +581,9 @@ def sendEmail():
     mailBody = str(totalAdds) + " A - " + str(totalFollows) + ' F - ' + \
                 str(totalComments) + " C"
     if len(loadTimes) > 0:
-        statistics = "\nLF - " + str(loadFailCount) + " LE - " + \
-                    str(loadErrCount) + " TPL - " + str(len(loadTimes))
+        statistics = "\n" + str(loadFailCount) + " LF - " + \
+                    str(loadErrCount) + " LE - " + str(len(loadTimes)) \
+                    + "TPL"
         statistics += "\nALT = " + str(sum(loadTimes)/len(loadTimes))
     else:
         statistics = ""
@@ -525,27 +602,39 @@ def sendEmail():
     except:
         log.warning('Mail not sent')
 
+#############################
 ## actual code starts here ##
-s = requests.Session()# open a session and login
-start = s.get(baseUrl) # starts the secure session - gets cookies
-login = s.get(logInUrl) # initiates login
-form = {'login':'true','username':username,'password':password}
-response = s.post(logInUrl, data=form) # send login data
-response.raise_for_status() # raises exception if we didn't log in
+try:
+    s = requests.Session()# open a session and login
+    start = s.get(baseUrl) # starts the secure session - gets cookies
+    login = s.get(logInUrl) # initiates login
+    form = {'login':'true','username':username,'password':password}
+    response = s.post(logInUrl, data=form) # send login data
+    if response.status_code == requests.codes.ok:
+        log.debug("login successful")
+    else:
+        log.warning("login failure")
+except:
+    log.warning("Failed to load login pages")
+    raise SystemExit
+finally:
+    pass
+
+commentCodes = loadList(puzzleListFile)
+puzzleFile = open(puzzleListFile, 'r') # open the puzzle list file
 
 # start scraping puzzles
 if newPuzzleCount: # passed in -x and a number
-    scrapeNewPuzzles(newPuzzleCount, puzzleListFile)
-# open the file for comments after adding new ones
-puzzleFile = open(puzzleListFile, 'r') # open the puzzle list file
-
+    scrapeNewPuzzles(newPuzzleCount, newPuzzFile)
 if userUrl: # passed in a user to scrape
     scrapeUser(userUrl)
 if publishCount: # passed in -p and a number
     publishLoop(publishCount)
     notifsUrl += '?all' # checks all notifs
 if newPubPuzzCount: # passed in -xp and a number
-    scrapeNewPuzzles(newPubPuzzCount, publishListFile)
+    scrapeNewPuzzles(newPubPuzzCount, newPubFile)
+if setSize: # passed in -s and a number
+    createSets(setSize)
 if testing: # in config file
     log.info("Testing")
     puzzle = loadPage(puzzleUrl + '26ZCX2BQ')
@@ -554,7 +643,7 @@ if testing: # in config file
         #publishPuzzle('26ZCX2BQ') #pumpkin in her jacket
     #scrapePuzzle('US8EUSFG') #Hubble
     #scrapeUser('https://www.jigidi.com/user/Spiritual')
-if not testing and not newPubPuzzCount and not newPuzzleCount:
+if not testing and notif:
     scrapeNotifs()
 
 log.info("Follow codes at start of followCode loop " + str(len(followCodes)))
@@ -570,7 +659,7 @@ log.debug(addCodes)
 for code in addCodes:
     puzzle = loadPage(puzzleUrl + code)
     if puzzle:
-        if addPuzzle(puzzle, code):
+        if addPuzzle(puzzle, code): # returns false if it was already followed
             scrapePuzzle(puzzle, code)
 log.info("Total Adds:" + str(totalAdds))
 log.info("Total Follows:" + str(totalFollows))

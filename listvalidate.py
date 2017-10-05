@@ -6,6 +6,8 @@
 puzzleListFile = "/home/pi/Documents/logs/puzzles" # private
 publishListFile = "/home/pi/Documents/logs/puzzlesPublic" # prod pi
 duplicateListFile = "/home/pi/Documents/logs/duplicates"
+newPuzzFile = "/home/pi/Documents/logs/newpuzzles" # private
+newPubFile = "/home/pi/Documents/logs/newpuzzlespub" # public
 
 def loadList(listFile):
     textList = open(listFile, 'r') # opens the list file
@@ -38,7 +40,8 @@ def compare(list1, list2):
             dupe = list2.index(code)
             with open(duplicateListFile, 'a') as dupeFile:
                 dupeFile.write(code + '\n')
-            list1.remove(code)
+            #list1.remove(code)
+            del list1[list1.index(code)]
             del list2[dupe]
         except:
             pass
@@ -48,11 +51,15 @@ def compare(list1, list2):
 
 # actual code starts here
 privateCodes = loadList(puzzleListFile)
-publicCodes = loadList(publishListFile)        
+publicCodes = loadList(publishListFile)
+newCodes = loadList(newPuzzFile)
+newPubCodes = loadList(newPubFile)       
 
 # check for codes that are in a list more than once
 dupCheck(privateCodes)
 dupCheck(publicCodes)
+dupCheck(newCodes)
+dupCheck(newPubCodes)
 
 # check for codes that are in both lists
 compare(publicCodes, privateCodes)
@@ -60,5 +67,7 @@ compare(publicCodes, privateCodes)
 # save the new lists
 writeOut(privateCodes, puzzleListFile)
 writeOut(publicCodes, publishListFile)
+writeOut(newCodes, newPuzzFile)
+writeOut(newPubCodes, newPubFile)
 
 
