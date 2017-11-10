@@ -51,7 +51,7 @@ mailComment = ""
 # check to see if arguments were passed in with the command
 inputValues = sys.argv
 userUrl = None
-publishCount = newPuzzleCount = newPubPuzzCount = setSize = notif = 0
+publishCount = newPuzzleCount = newPubPuzzCount = setSize = notif = scrapeMyPuzzles = 0
 
 if len(inputValues) > 1: # extra arguements were entered
     log.info("passed in values:")
@@ -83,6 +83,10 @@ if len(inputValues) > 1: # extra arguements were entered
     elif inputValues[1] == '-d': # deep dive in notifications
         notifsUrl += '?all'
         notif = True
+        log.info("Deep dive on Notifs")
+    elif inputValues[1] == '-m': # scrape my puzzles
+        scrapeMyPuzzles = True
+        log.info("Scraping my puzzles")
     elif inputValues[1] == '-s': # build publish puzzle sets
         if len(inputValues) > 2:
             setSize = int(inputValues[2])
@@ -244,16 +248,14 @@ def solvedCheck(puzzlePage):
     log.debug("Starting solvedCheck on " + puzzlePage.url)
     html = lxml.html.fromstring(puzzlePage.text)
     # fix from here on
-    if len(html.xpath(r'//span[@class="js_bookmark js_link on"]')) > 0:
-        # bookmark link is on, so puzzle is bookmarked
-        log.debug("Bookmark is on")
+    if len(html.xpath(r'//div[@id="user_progress"]')) > 0:
+        # I have solved this one
+        log.debug("Already solved")
         return true
-    elif len(html.xpath(r'//span[@class="js_bookmark js_link off"]')) > 0: 
-        # bookmark link is off, so puzzle is not bookmarked
-        log.debug("Bookmark is off")
+    else: 
+        # I have not solved this one
+        log.debug("Not solved")
         return false
-    else:
-        log.warning("No Bookmark Link found on page " + puzzlePage.url)
 
 def justBookmark(puzzlePage, puzzleId):
     log.debug("Starting justBookmark on " + puzzlePage.url)
@@ -416,21 +418,29 @@ def scrapeUser(userUrl):
 
 def scrapeMine():
     # get codes from my pages
-    log.info("scraping my puzzles")
+    log.info("starting to scrape my puzzles")
     page = loadPage(myPuzzlesUrl)
     if page:
         pageNum = 1
         codeCount = 1
         addCount = 0
+        indexCode = "test"
         while codeCount > 0:
             if page.status_code == requests.codes.ok:
                 page_html = lxml.html.fromstring(page.text)
                 puzzleLinks = page_html.xpath(r'//div[@data-id]') 
                 puzzleCodes = [i.attrib['data-id'] for i in puzzleLinks]
-                codeCount = len(puzzleCodes)
-                myCodes.extend(puzzleCodes)
+                if indexCode == puzzleCodes[0]:
+                    codeCount = 0
+                    log.debug("repeat")
+                else:
+                    indexCode = puzzleCodes[0]
+                    codeCount = len(puzzleCodes)
+                    myCodes.extend(puzzleCodes)
                 pageNum += 1
-                page = loadPage(userUrl + '/' + str(pageNum))
+                page = loadPage(myPuzzlesUrl + '?p=' + str(pageNum))
+                log.debug("scraping page " + str(pageNum))
+                log.debug("URL page " + str(page.url))
             else: codeCount = 0
             addCount += codeCount
         log.info("found " + str(addCount) + " puzzle Codes")
@@ -577,8 +587,6 @@ def createSets(bonusCount):
 
 def scrapeNewPuzzles(counter, listFile):
     # get codes from newly created puzzles
-    # Need to ensure puzzleFile isn't open before this
-    # should put in an explicit check
     # add try open file with puzzle name in cneed folder, if its there, add code,
     # delete the file and continue, if its not there, then stop adding
     log.info("scraping " + str(counter) + " new puzzles")
@@ -602,6 +610,8 @@ def scrapeNewPuzzles(counter, listFile):
                     # append code to the file
                     with open(listFile, 'a') as puzzleFile:
                         puzzleFile.write(code + '\n')
+                    # add the code to myCodes to bookmark
+                    myCodes.append(code)
                     addCount += 1
                 log.info("Added " + str(addCount) + " new puzzles")
                 pageNum += 1
@@ -695,14 +705,18 @@ if newPubPuzzCount: # passed in -xp and a number
     scrapeNewPuzzles(newPubPuzzCount, newPubFile)
 if setSize: # passed in -s and a number
     createSets(setSize)
+if scrapeMyPuzzles: # passed in -m
+    scrapeMine()
 if testing: # in config file
     log.info("Testing")
-    puzzle = loadPage(puzzleUrl + '26ZCX2BQ')
-    if puzzle:
-        scrapePuzzle(puzzle, '26ZCX2BQ') #pumpkin in her jacket
+    #puzzle = loadPage(puzzleUrl + '26ZCX2BQ')
+    myCodes.append('BU19IQPH')
+    #if puzzle:
+        #addMine(puzzle, '26ZCX2BQ') #pumpkin in her jacket
         #publishPuzzle('26ZCX2BQ') #pumpkin in her jacket
     #scrapePuzzle('US8EUSFG') #Hubble
     #scrapeUser('https://www.jigidi.com/user/Spiritual')
+    #scrapeMine()
 if not testing and notif:
     scrapeNotifs()
 
@@ -713,14 +727,22 @@ for code in followCodes:
     if puzzle:
         if followPuzzle(puzzle, code):
             scrapePuzzle(puzzle, code)
+            
 log.info("Add codes at start of addCode loop: " + str(len(addCodes)))
 log.debug(addCodes)
-
 for code in addCodes:
     puzzle = loadPage(puzzleUrl + code)
     if puzzle:
         if addPuzzle(puzzle, code): # returns false if it was already followed
             scrapePuzzle(puzzle, code)
+
+log.info("My codes at start of myCode loop: " + str(len(myCodes)))
+log.debug(myCodes)
+for code in myCodes:
+    puzzle = loadPage(puzzleUrl + code)
+    if puzzle:
+        addMine(puzzle, code)
+
 log.info("Total Adds:" + str(totalAdds))
 log.info("Total Follows:" + str(totalFollows))
 log.info("Total Comments:" + str(totalComments))
