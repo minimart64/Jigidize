@@ -353,7 +353,7 @@ def followPuzzle(puzzle, puzzCode):
             addComment(puzzle, puzzCode)
     if puzzle.status_code == requests.codes.ok:
         if justFollow(puzzle, puzzCode):
-            log.info("Puzzle " + puzzCode + " followed")
+            log.debug("Puzzle " + puzzCode + " followed")
         else:
             log.info("Puzzle " + puzzCode + " follow failed")
         return true

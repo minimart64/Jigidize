@@ -19,12 +19,12 @@ for i in $(ls); do
     count+=1
     echo $i
     echo $count
-    # if we have made 24 puzzles, stop to get them from jigid before we make more
-    if ((count==24)); then
-        echo "Jigidizing 24"
-        ~/Documents/git/Jigidize/jigidize.py -x 24
-        count=0
-    fi
+    # if we have made 24 puzzles, stop to get them from jigidi before we make more
+    # if ((count==24)); then
+    #    echo "Jigidizing 24"
+    #    ~/Documents/git/Jigidize/jigidize.py -x 24
+    #    count=0
+    #fi
 done
 
 if ((count>0)); then
