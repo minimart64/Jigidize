@@ -37,7 +37,7 @@ cd ~/Documents/PhotosPublic
 declare -i count; count=0
 for i in $(ls); do
     mv $i ~/Documents/cneeing/
-    cnee --replay --file ~/Documents/git/Jigidize/cneeScript.xns -force-core-replay --err-file ~/Documents/logs/cneepub.log
+    cnee --replay --file ~/Documents/git/Jigidize/cneeScriptPub.xns -force-core-replay --err-file ~/Documents/logs/cneepub.log
     mv ~/Documents/cneeing/$i ~/Documents/cneed/
     count+=1
     echo $count
