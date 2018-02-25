@@ -13,7 +13,7 @@ hdlr = logging.handlers.RotatingFileHandler('/home/pi/Documents/logs/jigidize.lo
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 hdlr.setFormatter(formatter)
 log.addHandler(hdlr)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 log.info("__________Blank Space_________")
 log.info("##### Starting to Jigidize #####")
 
@@ -51,7 +51,8 @@ mailComment = ""
 # check to see if arguments were passed in with the command
 inputValues = sys.argv
 userUrl = None
-publishCount = newPuzzleCount = newPubPuzzCount = setSize = notif = scrapeMyPuzzles = 0
+publishCount = newPuzzleCount = newPubPuzzCount = setSize = notif = \
+	scrapeMyPuzzles = recoverMyPuzzles = 0
 
 if len(inputValues) > 1: # extra arguements were entered
     log.info("passed in values:")
@@ -87,6 +88,9 @@ if len(inputValues) > 1: # extra arguements were entered
     elif inputValues[1] == '-m': # scrape my puzzles
         scrapeMyPuzzles = True
         log.info("Scraping my puzzles")
+    elif inputValues[1] == '-r': # recover my puzzles
+        recoverMyPuzzles = True
+        log.info("Recovering my puzzles")
     elif inputValues[1] == '-s': # build publish puzzle sets
         if len(inputValues) > 2:
             setSize = int(inputValues[2])
@@ -247,7 +251,6 @@ def solvedCheck(puzzlePage):
     # check ro see if i have solved this one before
     log.debug("Starting solvedCheck on " + puzzlePage.url)
     html = lxml.html.fromstring(puzzlePage.text)
-    # fix from here on
     if len(html.xpath(r'//div[@id="user_progress"]')) > 0:
         # I have solved this one
         log.debug("Already solved")
@@ -256,6 +259,49 @@ def solvedCheck(puzzlePage):
         # I have not solved this one
         log.debug("Not solved")
         return false
+
+def solveCount(puzzlePage):
+    # returns count of solves
+    log.debug("Starting solveCount on " + puzzlePage.url)
+    solveCount = 0
+    html = lxml.html.fromstring(puzzlePage.text)
+    puzzleStats = html.xpath(r'//div[@class="stat"]/strong/child::text()')
+    log.debug(puzzleStats)
+    # Stats are pieces, comments, solves, so we want the 3rd stat
+    solveCount = int(puzzleStats[2])
+    log.debug("solveCount=" + str(solveCount))
+    # get the number from div-stat, but there are 3 and we need the third one... 
+    # not sure how to get it
+    return solveCount
+
+def keywordCheck(puzzlePage):
+    # returns keyword if this puzzle has one
+    log.debug("Starting keywordCheck on " + puzzlePage.url)
+    html = lxml.html.fromstring(puzzlePage.text)
+    keywordSet = html.xpath(r'//input[@name="keywords"]')
+    keywords = [i.attrib['value'] for i in keywordSet]
+    log.debug("Keywords: " + str(len(keywords)))
+    if len(keywords) > 0:
+        log.debug("Keyword 1: " + keywords[0])
+        return keywords[0]
+    else:
+        return False
+  
+def pubCheck(puzzlePage):
+    # returns true if this puzzle looks like I tried to publish it
+    log.debug("Starting pubCheck on " + puzzlePage.url)
+    html = lxml.html.fromstring(puzzlePage.text)
+    descText = html.xpath(r'//div[@id="description_section"]/child::text()')
+    log.debug("Desc lines: " + str(len(descText)))
+    if len(descText) >1:
+        return True
+    elif len(descText) == 1 and len(descText[0].strip()) > 0:
+        log.debug("Desc line 1: " + str(len(descText[0].strip())))
+        return True
+    else:
+        return False
+    puzzleStats = html.xpath(r'//div[@class="stat"]/strong/child::text()')
+    log.debug(puzzleStats)
 
 def justBookmark(puzzlePage, puzzleId):
     log.debug("Starting justBookmark on " + puzzlePage.url)
@@ -372,6 +418,47 @@ def addMine(puzzle, puzzCode):
                 log.debug("Puzzle " + puzzCode + " bookmark success")
             else:
                 log.info("Puzzle " + puzzCode + " bookmark failed")
+            return true
+    else:
+        log.warning("Puzzle " + puzzCode + " did not load")
+        return false
+
+def recoverMine(puzzle, puzzCode):
+    # this finds puzzles I created that haven't been solved and adds them 
+    # to newpuzzles or newpuzzlespub depending of whether it has a description
+    if puzzle.status_code == requests.codes.ok:
+        # need to make a decision here if it's a pub or not
+        # if pub, change listFile to newPubFile
+        listFile = newPuzzFile
+        private = 0
+        if pubCheck(puzzle):
+            log.debug("looks like a pub")
+            listFile = newPubFile
+        else:
+            log.debug("doesn't look like a pub")
+        if keywordCheck(puzzle) == "private":
+            private = 1
+            log.debug("private puzzle, don't add to the list")
+        if solvedCheck(puzzle):
+            log.debug("Puzzle " + puzzCode + " already solved")
+            log.debug("checking solve count")
+            if solveCount(puzzle) <= 1 and not private:
+                log.debug("add to the list")
+                # append code to the file selected above
+                with open(listFile, 'a') as puzzleFile:
+                        puzzleFile.write(code + '\n')
+            else:
+                log.debug("more than 1 solve, don't add to list")
+            return false
+        else:
+            log.debug("checking solve count")
+            if solveCount(puzzle) == 0 and not private:
+                log.debug("add to the list")
+                # append code to the file selected above
+                with open(listFile, 'a') as puzzleFile:
+                        puzzleFile.write(code + '\n')
+            else:
+                log.debug("more than 0 solves, don't add to list")
             return true
     else:
         log.warning("Puzzle " + puzzCode + " did not load")
@@ -705,12 +792,13 @@ if newPubPuzzCount: # passed in -xp and a number
     scrapeNewPuzzles(newPubPuzzCount, newPubFile)
 if setSize: # passed in -s and a number
     createSets(setSize)
-if scrapeMyPuzzles: # passed in -m
+if scrapeMyPuzzles or recoverMyPuzzles: # passed in -m or -r
     scrapeMine()
 if testing: # in config file
     log.info("Testing")
     #puzzle = loadPage(puzzleUrl + '26ZCX2BQ')
-    myCodes.append('BU19IQPH')
+    myCodes.append('26ZCX2BQ') #pumpkin in her jacket
+    myCodes.append('MUM8225R') #pretty in pink
     #if puzzle:
         #addMine(puzzle, '26ZCX2BQ') #pumpkin in her jacket
         #publishPuzzle('26ZCX2BQ') #pumpkin in her jacket
@@ -739,9 +827,15 @@ for code in addCodes:
 log.info("My codes at start of myCode loop: " + str(len(myCodes)))
 log.debug(myCodes)
 for code in myCodes:
-    puzzle = loadPage(puzzleUrl + code)
+    if recoverMyPuzzles:
+        puzzle = loadPage(createdUrl + code)
+    else:
+        puzzle = loadPage(puzzleUrl + code)
     if puzzle:
-        addMine(puzzle, code)
+        if recoverMyPuzzles:
+            recoverMine(puzzle, code)
+        else:
+            addMine(puzzle, code)
 
 log.info("Total Adds:" + str(totalAdds))
 log.info("Total Follows:" + str(totalFollows))
