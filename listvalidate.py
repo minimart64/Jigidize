@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# open the files, check for duplicates adn remove them
+# open the files, check for duplicates and remove them
 # then check for codes that exist in both files and put them in a third file 
 
 puzzleListFile = "/home/pi/Documents/logs/puzzles" # private
@@ -34,20 +34,37 @@ def writeOut(codeList, listFile):
     fileOut.write(codeText)
     fileOut.close()
 
-def compare(list1, list2):
+def reconcile(list1, list2):
+    # removes codes that are in both lists and puts them in the duplicate file
+    delList = []
     for code in list1:
         try:
             dupe = list2.index(code)
             with open(duplicateListFile, 'a') as dupeFile:
                 dupeFile.write(code + '\n')
-            #list1.remove(code)
-            del list1[list1.index(code)]
-            del list2[dupe]
+            delList.append(code)
+            list2.remove(code)
+            # del list1[list1.index(code)]
+            # del list2[dupe]
+        except:
+            pass
+        finally:
+            for code in delList:
+                list1.remove(code)
+
+def compare(list1, list2):
+    # removes codes from list 1 that are in list 2
+    for code in list2:
+        try:
+            dupe = list1.index(code)
+            list1.remove(code)
+            # list2.remove(code)
+            # del list1[list1.index(code)]
+            # del list2[dupe]
         except:
             pass
         finally:
             pass
-
 
 # actual code starts here
 privateCodes = loadList(puzzleListFile)
@@ -61,8 +78,16 @@ dupCheck(publicCodes)
 dupCheck(newCodes)
 dupCheck(newPubCodes)
 
-# check for codes that are in both lists
-compare(publicCodes, privateCodes)
+# check for codes in new list that are in regular lists too
+compare(newCodes, privateCodes)
+compare(newPubCodes, publicCodes)
+compare(newCodes, publicCodes)
+compare(newPubCodes, privateCodes)
+
+# check for codes that are in the pub lis and in the non-pub list
+reconcile(privateCodes, publicCodes)
+
+
 
 # save the new lists
 writeOut(privateCodes, puzzleListFile)
