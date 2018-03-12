@@ -52,7 +52,7 @@ mailComment = ""
 inputValues = sys.argv
 userUrl = None
 publishCount = newPuzzleCount = newPubPuzzCount = setSize = notif = \
-	scrapeMyPuzzles = recoverMyPuzzles = 0
+    scrapeMyPuzzles = recoverMyPuzzles = privatize = 0
 
 if len(inputValues) > 1: # extra arguements were entered
     log.info("passed in values:")
@@ -72,6 +72,9 @@ if len(inputValues) > 1: # extra arguements were entered
     elif inputValues[1] == '-x': # xnee just finished making more puzzles
         if len(inputValues) > 2:
             newPuzzleCount = int(inputValues[2])
+            if len(inputValues) > 3:
+                if inputValues[3] == 'priv':
+                    privatize = True
         else:
             newPuzzleCount = 1
         log.info("Adding New Puzzles: " + str(newPuzzleCount))
@@ -407,9 +410,41 @@ def followPuzzle(puzzle, puzzCode):
         log.warning("Puzzle " + puzzCode + " did not load")
         return false
 
+def makePrivate(puzzCode):
+    # tag a puzzle as private so it doesn't get recovered
+    log.debug("privating puzzle " + puzzCode)
+    puzzlePage = loadPage(createdUrl + puzzCode)
+    if puzzlePage:
+        html = lxml.html.fromstring(puzzlePage.text)
+        g_key = getGKey(html)
+        key = g_key + "#info form_1"
+        titleSet = html.xpath(r'//input[@name="title"]')
+        title = titleSet[0].attrib['value']
+        descSet = html.xpath(r'//div[@id="description_section"]/child::text()')
+        description = ''
+        lines = 0
+        for line in descSet:
+            description += line + '\n'
+            lines += 1
+        keywords = 'private'
+        form = {'title':title, 'description':description, 'credit_name':"",\
+                'credit_link':"", 'info_message':"", 'appropriate':'on', 'category':\
+                0, 'copyright':0, 'keywords':keywords, 'key':key, 'pid':puzzCode}
+        headers = {'Referer':puzzlePage.url}
+        response = s.post(publishUrl, data = form, headers = headers)
+        if response.status_code == requests.codes.ok:
+            log.info("privated puzzle " + puzzCode)
+            addCodes.append(puzzCode)
+            return true
+        else:
+            log.warning("tried and failed to private puzzle " + puzzleId)
+            return false
+
 def addMine(puzzle, puzzCode):
     # this bookmarks a puzzle I created if I haven’t already solved it
     if puzzle.status_code == requests.codes.ok:
+        if privatize:
+            makePrivate(puzzCode)
         if solvedCheck(puzzle):
             log.debug("Puzzle " + puzzCode + " already solved")
             return false
