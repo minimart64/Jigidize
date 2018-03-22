@@ -41,12 +41,6 @@ for i in $(ls); do
     mv ~/Documents/cneeing/$i ~/Documents/cneed/
     count+=1
     echo $count
-    # if we have made 24 puzzles, stop to get them from jigid before we make more
-    if ((count==24)); then
-        echo "Jigidizing 24 pubs"
-        ~/Documents/git/jigidize/jigidize.py -xp 24
-        count=0
-    fi
 done
 if ((count>0)); then
     echo "Jigidizing pubs"
