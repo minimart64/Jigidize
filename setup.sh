@@ -1,11 +1,15 @@
 sudo apt-get install python3-lxml
 
+#move the config file?
 sudo mkdir /var/lib/jigidize
 sudo chmod a+w /var/lib/jigidize
-mkdir /home/pi/Documents/logs
+touch /var/lib/jigidize/config.cfg
 
-create files: /home/pi/Documents/logs/puzzles
-/home/pi/Documents/logs/puzzlesPublic
-/home/pi/Documents/logs/newpuzzles
-/home/pi/Documents/logs/newpuzzlespub
+# make logs folder and list files
+# move list files?
+mkdir /home/pi/Documents/logs
+touch /home/pi/Documents/logs/puzzles
+touch /home/pi/Documents/logs/puzzlesPublic
+touch /home/pi/Documents/logs/newpuzzles
+touch /home/pi/Documents/logs/newpuzzlespub
 
