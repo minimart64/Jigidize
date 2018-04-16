@@ -13,7 +13,7 @@ hdlr = logging.handlers.RotatingFileHandler('/home/pi/Documents/logs/jigidize.lo
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 hdlr.setFormatter(formatter)
 log.addHandler(hdlr)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 log.info("__________Blank Space_________")
 log.info("##### Starting to Jigidize #####")
 
@@ -768,7 +768,7 @@ def sendEmail():
     global totalAdds, totalFollows, totalComments, fileEmpty, sender, \
             smtpPassword, smtpServer, mailComment
     mailHeader = "From: Raspberry Pi <" + sender + ">\nto: " + username + \
-    " <" + reciever + ">\nSubject: Report\n"
+    " <" + reciever + ">\nSubject: Report red\n"
     recievers = [reciever]
     mailBody = str(totalAdds) + " A - " + str(totalFollows) + ' F - ' + \
                 str(totalComments) + " C"
