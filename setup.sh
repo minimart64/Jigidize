@@ -19,9 +19,12 @@ touch /home/pi/Documents/logs/puzzles
 touch /home/pi/Documents/logs/puzzlesPublic
 touch /home/pi/Documents/logs/newpuzzles
 touch /home/pi/Documents/logs/newpuzzlespub
+touch /home/pi/Documents/logs/newpuzzlespriv
 mkdir /home/pi/Documents/Photos
 mkdir /home/pi/Documents/PhotosPublic
+mkdir /home/pi/Documents/PhotosPrivate
 mkdir /home/pi/Documents/cneeing
 mkdir /home/pi/Documents/cneed
+mkdir /home/pi/Documents/failures
 
 

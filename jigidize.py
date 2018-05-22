@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import requests, lxml.html, sys, logging, logging.handlers, smtplib, configparser
-import time
+import time, os, shutil
 
 # TODO make puzzle and puzzlepub files into lists
 # TODO add scrape of my puzzles to bookmark and build puzzle list
@@ -13,14 +13,26 @@ hdlr = logging.handlers.RotatingFileHandler('/home/pi/Documents/logs/jigidize.lo
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 hdlr.setFormatter(formatter)
 log.addHandler(hdlr)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 log.info("__________Blank Space_________")
 log.info("##### Starting to Jigidize #####")
 
-puzzleListFile = "/home/pi/Documents/logs/puzzles" # private
-publishListFile = "/home/pi/Documents/logs/puzzlesPublic" # prod pi
-newPuzzFile = "/home/pi/Documents/logs/newpuzzles" # private
+puzzleListFile = "/home/pi/Documents/logs/puzzles" # bonus puzzles
+publishListFile = "/home/pi/Documents/logs/puzzlesPublic" # puzzles for publishing
+newPuzzFile = "/home/pi/Documents/logs/newpuzzles" # bonus puzzles
 newPubFile = "/home/pi/Documents/logs/newpuzzlespub" # public
+newPrivFile = "/home/pi/Documents/logs/newpuzzlespriv"
+
+photosDir = '/home/pi/Documents/Photos'
+pubsDir = '/home/pi/Documents/PhotosPublic'
+privDir = '/home/pi/Documents/PhotosPrivate'
+cneeingDir = '/home/pi/Documents/cneeing'
+cneedDir = '/home/pi/Documents/cneed'
+failDir = '/home/pi/Documents/failures'
+
+cneeBasic = "cnee --replay --file ~/Documents/git/jigidize/cneeScript.xns -force-core-replay"
+cneePub = "cnee --replay --file ~/Documents/git/jigidize/cneeScriptPub.xns -force-core-replay"
+cneePriv = "cnee --replay --file ~/Documents/git/jigidize/cneeScriptPriv.xns -force-core-replay"
 
 # URLs
 baseUrl = "https://www.jigidi.com"
@@ -52,7 +64,8 @@ mailComment = ""
 inputValues = sys.argv
 userUrl = None
 publishCount = newPuzzleCount = newPubPuzzCount = setSize = notif = \
-    scrapeMyPuzzles = recoverMyPuzzles = privatize = 0
+    scrapeMyPuzzles = recoverMyPuzzles = privatize = makingPuzzles = \
+    privatizingPuzzles = 0
 
 if len(inputValues) > 1: # extra arguements were entered
     log.info("passed in values:")
@@ -72,9 +85,6 @@ if len(inputValues) > 1: # extra arguements were entered
     elif inputValues[1] == '-x': # xnee just finished making more puzzles
         if len(inputValues) > 2:
             newPuzzleCount = int(inputValues[2])
-            if len(inputValues) > 3:
-                if inputValues[3] == 'priv':
-                    privatize = True
         else:
             newPuzzleCount = 1
         log.info("Adding New Puzzles: " + str(newPuzzleCount))
@@ -98,8 +108,12 @@ if len(inputValues) > 1: # extra arguements were entered
         if len(inputValues) > 2:
             setSize = int(inputValues[2])
         else:
-            setSize = 3
+            setSize = 4
         log.info("Building Public Puzzle sets with setSize: " + str(setSize))
+    elif inputValues[1] == '-make': # make puzzles from photos
+        makingPuzzles = True
+    elif inputValues[1] == '-priv': # make puzzles from photos
+        privatizingPuzzles = True
     else:
         print("invalid argument")
         raise SystemExit
@@ -410,6 +424,16 @@ def followPuzzle(puzzle, puzzCode):
         log.warning("Puzzle " + puzzCode + " did not load")
         return false
 
+def privatizeLoop():
+    # loops through the puzzles in NewPuzzlesPriv and makes the private
+    log.debug("starting privatize loop")
+    privList = loadList(newPrivFile)
+    log.debug(privList)
+    for code in privList:
+        makePrivate(code)
+    writeOut([], newPrivFile)
+    
+
 def makePrivate(puzzCode):
     # tag a puzzle as private so it doesn't get recovered
     log.debug("privating puzzle " + puzzCode)
@@ -437,14 +461,12 @@ def makePrivate(puzzCode):
             addCodes.append(puzzCode)
             return true
         else:
-            log.warning("tried and failed to private puzzle " + puzzleId)
+            log.warning("tried and failed to privatize puzzle " + puzzleId)
             return false
 
 def addMine(puzzle, puzzCode):
     # this bookmarks a puzzle I created if I haven’t already solved it
     if puzzle.status_code == requests.codes.ok:
-        if privatize:
-            makePrivate(puzzCode)
         if solvedCheck(puzzle):
             log.debug("Puzzle " + puzzCode + " already solved")
             return false
@@ -709,8 +731,6 @@ def createSets(bonusCount):
 
 def scrapeNewPuzzles(counter, listFile):
     # get codes from newly created puzzles
-    # add try open file with puzzle name in cneed folder, if its there, add code,
-    # delete the file and continue, if its not there, then stop adding
     log.info("scraping " + str(counter) + " new puzzles")
     page = loadPage(myPuzzlesUrl)
     if page:
@@ -745,6 +765,51 @@ def scrapeNewPuzzles(counter, listFile):
                 log.warning("My Puzzles page failed to load")
         #puzzleFile.close
         log.info("Added " + str(addCount) + " new puzzles")
+
+def makePuzzles(directory, command, codeFile):
+    # makes puzzles from the input directories and validates they were made
+    # directory is where the photos are
+    # command is which cnee command to use
+    # codeFile is which file to put the codes in
+    log.info("Making Puzzles in " + directory)
+    fileList = os.listdir(directory)
+    log.debug("File list:")
+    log.debug(fileList)
+    for photo in fileList:
+        log.debug("making puzzle for file " + photo)
+        shutil.move(directory + '/' + photo, cneeingDir)
+        os.system(command)
+        # attempt to bookmark new file, if it's already bookmarked then cnee failed
+        oldAddCount = totalAdds
+        # get code from newly created puzzle
+        log.info("scraping 1 new puzzle")
+        page = loadPage(myPuzzlesUrl)
+        if page:
+            page_html = lxml.html.fromstring(page.text)
+            puzzleLinks = page_html.xpath(r'//div[@data-id]') 
+            puzzleCodes = [i.attrib['data-id'] for i in puzzleLinks]
+            if len(puzzleCodes):
+                log.debug("Loaded page 1 of my puzzles")
+                log.debug(puzzleCodes)
+                code = puzzleCodes[0]
+                log.debug("New puzzle code is " + code)
+            else: 
+                log.warning("My Puzzles page failed to load")
+        puzzle = loadPage(puzzleUrl + code)
+        addMine(puzzle, code)
+        if totalAdds > oldAddCount:
+            # new puzzle was not already bookmarked, so add it to the list
+            with open(codeFile, 'a') as puzzleFile:
+                puzzleFile.write(code + '\n')
+            # and if it's private, make it so
+            if privatize:
+                makePrivate(code)
+            # then move the pic to cneed
+            shutil.move(cneeingDir + '/' + photo, cneedDir)
+        else:
+            # puzzle was already bookmarked, so this is a create failure
+            # So move it back
+            shutil.move(cneeingDir + '/' + photo, directory)
 
 def writeList(listVar, listFileName):
     # write out the puzzle file list
@@ -806,6 +871,7 @@ try:
         log.debug("login successful")
     else:
         log.warning("login failure")
+        raise SystemExit
 except:
     log.warning("Failed to load login pages")
     raise SystemExit
@@ -829,6 +895,13 @@ if setSize: # passed in -s and a number
     createSets(setSize)
 if scrapeMyPuzzles or recoverMyPuzzles: # passed in -m or -r
     scrapeMine()
+if makingPuzzles: # passed in -make
+    makePuzzles(photosDir, cneeBasic, newPuzzFile)
+    makePuzzles(pubsDir, cneePub, newPubFile)
+    privatize = True
+    makePuzzles(privDir, cneePriv, newPrivFile)
+if privatizingPuzzles: # passed in -priv
+    privatizeLoop()
 if testing: # in config file
     log.info("Testing")
     #puzzle = loadPage(puzzleUrl + '26ZCX2BQ')

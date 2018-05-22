@@ -3,11 +3,13 @@
 # open the files, check for duplicates and remove them
 # then check for codes that exist in both files and put them in a third file 
 
-puzzleListFile = "/home/pi/Documents/logs/puzzles" # private
-publishListFile = "/home/pi/Documents/logs/puzzlesPublic" # prod pi
+puzzleListFile = "/home/pi/Documents/logs/puzzles" # bonus
+publishListFile = "/home/pi/Documents/logs/puzzlesPublic" # publish
 duplicateListFile = "/home/pi/Documents/logs/duplicates"
-newPuzzFile = "/home/pi/Documents/logs/newpuzzles" # private
+newPuzzFile = "/home/pi/Documents/logs/newpuzzles" # bonus
 newPubFile = "/home/pi/Documents/logs/newpuzzlespub" # public
+newPrivFile = "/home/pi/Documents/logs/newpuzzlespriv" # private
+
 
 def loadList(listFile):
     textList = open(listFile, 'r') # opens the list file
@@ -70,13 +72,15 @@ def compare(list1, list2):
 privateCodes = loadList(puzzleListFile)
 publicCodes = loadList(publishListFile)
 newCodes = loadList(newPuzzFile)
-newPubCodes = loadList(newPubFile)       
+newPubCodes = loadList(newPubFile)
+newPrivCodes = loadList(newPrivFile)       
 
 # check for codes that are in a list more than once
 dupCheck(privateCodes)
 dupCheck(publicCodes)
 dupCheck(newCodes)
 dupCheck(newPubCodes)
+dupCheck(newPrivCodes)
 
 # check for codes in new list that are in regular lists too
 compare(newCodes, privateCodes)
@@ -94,5 +98,6 @@ writeOut(privateCodes, puzzleListFile)
 writeOut(publicCodes, publishListFile)
 writeOut(newCodes, newPuzzFile)
 writeOut(newPubCodes, newPubFile)
+writeOut(newPrivCodes, newPrivFile)
 
 
