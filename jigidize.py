@@ -65,7 +65,7 @@ inputValues = sys.argv
 userUrl = None
 publishCount = newPuzzleCount = newPubPuzzCount = setSize = notif = \
     scrapeMyPuzzles = recoverMyPuzzles = privatize = makingPuzzles = \
-    privatizingPuzzles = 0
+    privatizingPuzzles = testing = 0
 
 if len(inputValues) > 1: # extra arguements were entered
     log.info("passed in values:")
@@ -128,8 +128,7 @@ else: notif = True
 config = configparser.SafeConfigParser()
 config.read('/var/lib/jigidize/config.cfg')
 try:
-    if not testing:
-        testing = int(config.get('settings','testing'))
+    #testing = int(config.get('settings','testing'))
     username = config.get('credentials','username')
     password = config.get('credentials','password')
     sender = config.get('credentials','sender')
