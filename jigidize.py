@@ -13,7 +13,7 @@ hdlr = logging.handlers.RotatingFileHandler('/home/pi/Documents/logs/jigidize.lo
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 hdlr.setFormatter(formatter)
 log.addHandler(hdlr)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 log.info("__________Blank Space_________")
 log.info("##### Starting to Jigidize #####")
 
@@ -114,6 +114,8 @@ if len(inputValues) > 1: # extra arguements were entered
         makingPuzzles = True
     elif inputValues[1] == '-priv': # make puzzles from photos
         privatizingPuzzles = True
+    elif inputValues[1] == '-test': # testing
+        testing = True
     else:
         print("invalid argument")
         raise SystemExit
@@ -126,7 +128,8 @@ else: notif = True
 config = configparser.SafeConfigParser()
 config.read('/var/lib/jigidize/config.cfg')
 try:
-    testing = int(config.get('settings','testing'))
+    if not testing:
+        testing = int(config.get('settings','testing'))
     username = config.get('credentials','username')
     password = config.get('credentials','password')
     sender = config.get('credentials','sender')
@@ -238,11 +241,11 @@ def followCheck(puzzlePage):
     # check to see if it's followed - returns true or false
     log.debug("Starting followCheck on " + puzzlePage.url)
     html = lxml.html.fromstring(puzzlePage.text)
-    if len(html.xpath(r'//span[@class="js_follow js_link on"]')) > 0:
+    if len(html.xpath(r'//div[@class="option follow on"]')) > 0:
         # follow link is on, so puzzle is followed
         log.debug("Follow is on")
         return true
-    elif len(html.xpath(r'//span[@class="js_follow js_link off"]')) > 0:
+    elif len(html.xpath(r'//div[@class="option follow off"]')) > 0:
         # follow link is off, so puzzle is not followed
         log.debug("Follow is off")
         return false
@@ -253,11 +256,11 @@ def bookmarkCheck(puzzlePage):
     # check to see if it's bookmarked - returns true or false
     log.debug("Starting bookmarkCheck on " + puzzlePage.url)
     html = lxml.html.fromstring(puzzlePage.text)
-    if len(html.xpath(r'//span[@class="js_bookmark js_link on"]')) > 0:
+    if len(html.xpath(r'//div[@class="option bookmark on"]')) > 0:
         # bookmark link is on, so puzzle is bookmarked
         log.debug("Bookmark is on")
         return true
-    elif len(html.xpath(r'//span[@class="js_bookmark js_link off"]')) > 0: 
+    elif len(html.xpath(r'//div[@class="option bookmark off"]')) > 0: 
         # bookmark link is off, so puzzle is not bookmarked
         log.debug("Bookmark is off")
         return false
@@ -833,7 +836,7 @@ def sendEmail():
     global totalAdds, totalFollows, totalComments, fileEmpty, sender, \
             smtpPassword, smtpServer, mailComment
     mailHeader = "From: Raspberry Pi <" + sender + ">\nto: " + username + \
-    " <" + reciever + ">\nSubject: Report red\n"
+    " <" + reciever + ">\nSubject: Report\n"
     recievers = [reciever]
     mailBody = str(totalAdds) + " A - " + str(totalFollows) + ' F - ' + \
                 str(totalComments) + " C"
@@ -902,11 +905,12 @@ if makingPuzzles: # passed in -make
     makePuzzles(privDir, cneePriv, newPrivFile)
 if privatizingPuzzles: # passed in -priv
     privatizeLoop()
-if testing: # in config file
+if testing: # in config file or -test passed in
     log.info("Testing")
     #puzzle = loadPage(puzzleUrl + '26ZCX2BQ')
-    myCodes.append('26ZCX2BQ') #pumpkin in her jacket
-    myCodes.append('MUM8225R') #pretty in pink
+    addCodes.append('6X8PDQQN') 
+    #myCodes.append('26ZCX2BQ') #pumpkin in her jacket
+    #myCodes.append('MUM8225R') #pretty in pink
     #if puzzle:
         #addMine(puzzle, '26ZCX2BQ') #pumpkin in her jacket
         #publishPuzzle('26ZCX2BQ') #pumpkin in her jacket
