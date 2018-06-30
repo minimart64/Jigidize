@@ -21,7 +21,8 @@ puzzleListFile = "/home/pi/Documents/logs/puzzles" # bonus puzzles
 publishListFile = "/home/pi/Documents/logs/puzzlesPublic" # puzzles for publishing
 newPuzzFile = "/home/pi/Documents/logs/newpuzzles" # bonus puzzles
 newPubFile = "/home/pi/Documents/logs/newpuzzlespub" # public
-newPrivFile = "/home/pi/Documents/logs/newpuzzlespriv"
+newPrivFile = "/home/pi/Documents/logs/newpuzzlespriv" #private
+puzzDataFile = "/home/pi/Documents/logs/puzzleData" # statistics
 
 photosDir = '/home/pi/Documents/Photos'
 pubsDir = '/home/pi/Documents/PhotosPublic'
@@ -103,6 +104,10 @@ if len(inputValues) > 1: # extra arguements were entered
         log.info("Scraping my puzzles")
     elif inputValues[1] == '-r': # recover my puzzles
         recoverMyPuzzles = True
+        #set up the CSV file for data
+        with open(puzzDataFile, 'w') as dataFile:
+            dataFile.write("code,pieces,comments,solves,solved,\
+                keyword,url,title\n")
         log.info("Recovering my puzzles")
     elif inputValues[1] == '-s': # build publish puzzle sets
         if len(inputValues) > 2:
@@ -112,7 +117,7 @@ if len(inputValues) > 1: # extra arguements were entered
         log.info("Building Public Puzzle sets with setSize: " + str(setSize))
     elif inputValues[1] == '-make': # make puzzles from photos
         makingPuzzles = True
-    elif inputValues[1] == '-priv': # make puzzles from photos
+    elif inputValues[1] == '-priv': # making puzzles private
         privatizingPuzzles = True
     else:
         print("invalid argument")
@@ -287,8 +292,6 @@ def solveCount(puzzlePage):
     # Stats are pieces, comments, solves, so we want the 3rd stat
     solveCount = int(puzzleStats[2])
     log.debug("solveCount=" + str(solveCount))
-    # get the number from div-stat, but there are 3 and we need the third one... 
-    # not sure how to get it
     return solveCount
 
 def keywordCheck(puzzlePage):
@@ -484,39 +487,48 @@ def recoverMine(puzzle, puzzCode):
     # this finds puzzles I created that haven't been solved and adds them 
     # to newpuzzles or newpuzzlespub depending of whether it has a description
     if puzzle.status_code == requests.codes.ok:
-        # need to make a decision here if it's a pub or not
+        # Gather info about the puzzle and record it in the data file
+        html = lxml.html.fromstring(puzzle.text)
+        puzzleStats = html.xpath(r'//div[@class="stat"]/strong/child::text()')
+        log.debug(puzzleStats)
+        if len(puzzleStats) !=3:
+            log.debug('stats is not 3 elements, can not unpack')
+            pieces, comments, solves = 0
+        else:
+            pieces, comments, solves = puzzleStats
+        titleSet = html.xpath(r'//div[@class="column column3 first"]/h1/child::text()')
+        title = titleSet[0]
+        log.debug("title: " + title)
+        solved = solvedCheck(puzzle)
+        keyword = keywordCheck(puzzle)
+        with open(puzzDataFile, 'a') as dataFile:
+                #dataFile.write("%(code),%(title),%(pcs)d,%(comm)d,%(solves)d,%(solved)d" \
+                #%{'code':code,'title':title,'pcs':pieces,'comm':comments,'solves':solves,\
+                #'solved':solved})
+                dataFile.write("{0},{1},{2},{3},{4},{5},{6},{7}\n".format( \
+                code,str(pieces),str(comments),str(solves),str(solved),\
+                keyword,puzzle.url,title))
         # if pub, change listFile to newPubFile
         listFile = newPuzzFile
-        private = 0
         if pubCheck(puzzle):
             log.debug("looks like a pub")
             listFile = newPubFile
         else:
             log.debug("doesn't look like a pub")
-        if keywordCheck(puzzle) == "private":
-            private = 1
-            log.debug("private puzzle, don't add to the list")
-        if solvedCheck(puzzle):
+        if keyword == "private":
+            listFile = newPrivFile
+            log.debug("private puzzle, add to Priv list")
+        if solved:
             log.debug("Puzzle " + puzzCode + " already solved")
-            log.debug("checking solve count")
-            if solveCount(puzzle) <= 1 and not private:
-                log.debug("add to the list")
-                # append code to the file selected above
-                with open(listFile, 'a') as puzzleFile:
-                        puzzleFile.write(code + '\n')
-            else:
-                log.debug("more than 1 solve, don't add to list")
-            return false
+        log.debug("checking solve count")
+        if int(solves) <= solved:
+            log.debug("add to the list")
+            # append code to the file selected above
+            with open(listFile, 'a') as puzzleFile:
+                    puzzleFile.write(code + '\n')
         else:
-            log.debug("checking solve count")
-            if solveCount(puzzle) == 0 and not private:
-                log.debug("add to the list")
-                # append code to the file selected above
-                with open(listFile, 'a') as puzzleFile:
-                        puzzleFile.write(code + '\n')
-            else:
-                log.debug("more than 0 solves, don't add to list")
-            return true
+            log.debug("other solves, don't add to list")
+        return true
     else:
         log.warning("Puzzle " + puzzCode + " did not load")
         return false
