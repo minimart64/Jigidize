@@ -847,7 +847,7 @@ def sendEmail():
     global totalAdds, totalFollows, totalComments, fileEmpty, sender, \
             smtpPassword, smtpServer, mailComment
     mailHeader = "From: Raspberry Pi <" + sender + ">\nto: " + username + \
-    " <" + reciever + ">\nSubject: Report red\n"
+    " <" + reciever + ">\nSubject: Report\n"
     recievers = [reciever]
     mailBody = str(totalAdds) + " A - " + str(totalFollows) + ' F - ' + \
                 str(totalComments) + " C"
