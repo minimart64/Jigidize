@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-import logging, logging.handlers
+import logging, logging.handlers # for the log
+from gpiozero import CPUTemperature
 
-# TODO make puzzle and puzzlepub files into lists
-# 
+# TODO add proc temp, etc
 
 # set up the logger
 log = logging.getLogger('timecheck')
@@ -13,5 +13,15 @@ formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 hdlr.setFormatter(formatter)
 log.addHandler(hdlr)
 log.setLevel(logging.INFO)
-log.info("__________Blank Space_________")
-log.info("##### Timecheck #####")
+log.debug("__________Blank Space_________")
+
+# get temps and stuff
+cpu = CPUTemperature()
+cpuC = cpu.temperature
+cpuF = cpuC * 1.8 + 32
+log.debug(str(cpuC) + " / " + str(cpuF))
+
+
+
+
+log.info("Timecheck - Temp: " + str(cpuC) + "/" + str(cpuF))
