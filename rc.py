@@ -9,7 +9,7 @@ import time, os, shutil, urllib.request
 # set up the logger
 log = logging.getLogger('rc')
 hdlr = logging.handlers.RotatingFileHandler('/home/pi/Documents/logs/rc.log',\
-                                            'a',500000,7)
+                                            'a',500000,2)
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 hdlr.setFormatter(formatter)
 log.addHandler(hdlr)
@@ -24,6 +24,7 @@ baseUrl = "https://www.redclouds.com"
 logInUrl = baseUrl + "/user/signin"
 signInUrl = baseUrl + "/user/ajax/signin"
 contriUrl = baseUrl + "/contributions/redclouds-regular"
+
 
 # some global variables
 true = 1
@@ -51,7 +52,7 @@ if len(inputValues) > 1: # extra arguements were entered
     log.info(inputValues)
     if inputValues[1] == '-u': # next argument should be a username
         if len(inputValues) > 2:
-            userUrl = 'https://www.jigidi.com/user/' + inputValues[2]
+            userUrl = baseUrl + "/user/albums/" + inputValues[2]
         else:
             log.info("User selected, but no username provided")
     elif inputValues[1] == '-p': # publish some puzzles
@@ -122,13 +123,30 @@ def scrapeContris():
             contriLinks.append(i.attrib['href'])
             log.debug("added " + i.attrib['href'])
         log.debug(contriLinks)
+
+def scrapeUser():
+	# get all the contributions from a user
+    log.info("scraping user " + userUrl)
+    contrisPage = loadPage(userUrl)
+    if contrisPage:
+        contris_html = lxml.html.fromstring(contrisPage.text)
+        contris = contris_html.xpath(r'//a[@class="one-item"]') 
+        log.debug(contris)
+        for i in contris:
+            contriLinks.append(i.attrib['href'])
+            log.debug("added " + i.attrib['href'])
+        log.debug(contriLinks)
         
 def scrapeImages(pageUrl, pageFile):
     # get the images from the contribution page
-    log.debug("Scraping " + pageUrl)
+    log.debug("Scraping " + pageFile.url)
     page_html = lxml.html.fromstring(pageFile.text)
     picLinks = page_html.xpath(r'//a[@class="one-preview"]')
     for i in picLinks:
+        picAdds.append(i.attrib['href'])
+        log.debug("added " + i.attrib['href'])
+    contrLinks = page_html.xpath(r'//a[@class="contr-link"]')
+    for i in contrLinks:
         picAdds.append(i.attrib['href'])
         log.debug("added " + i.attrib['href'])
     #pics = [i.attrib['href'] for i in picLinks]
@@ -179,7 +197,7 @@ def sendEmail():
     global totalAdds, totalFollows, totalComments, fileEmpty, sender, \
             smtpPassword, smtpServer, mailComment
     mailHeader = "From: Raspberry Pi <" + sender + ">\nto: " + username + \
-    " <" + reciever + ">\nSubject: Report fan RC\n"
+    " <" + reciever + ">\nSubject: Report RC\n"
     recievers = [reciever]
     mailBody = str(totalAdds) + "-A "
     if len(loadTimes) > 0:
@@ -221,7 +239,10 @@ finally:
     pass
 
 # start scraping puzzles
-if testing: # in config file or -test passed in
+if userUrl:
+    # scraping users
+    scrapeUser()
+elif testing: # in config file or -test passed in
     log.info("Testing")
     #puzzle = loadPage(puzzleUrl + '26ZCX2BQ')
     #addCodes.append('6X8PDQQN') 
@@ -233,13 +254,18 @@ if testing: # in config file or -test passed in
     #scrapePuzzle('US8EUSFG') #Hubble
     #scrapeUser('https://www.jigidi.com/user/Spiritual')
     #scrapeMine()
-if not testing:
+else:
     scrapeContris()
 
 # get links to images
 log.info("contris to scrape: " + str(len(contriLinks)))
 for link in contriLinks:
-    page = loadPage(baseUrl+link)
+    if link.startswith("https:"):
+        host = "https://" + link.split('/')[2]
+    else:
+        host = baseUrl
+    contriName = link.split('/')[-1]
+    page = loadPage(host + "/contributions/preview/" + contriName)
     scrapeImages(link, page)
     
 # get the actual images
