@@ -14,6 +14,7 @@ hdlr.setFormatter(formatter)
 log.addHandler(hdlr)
 log.setLevel(logging.INFO)
 log.debug("__________Blank Space_________")
+log.debug("##### starting timecheck #####")
 
 # get temps and stuff
 cpu = CPUTemperature()

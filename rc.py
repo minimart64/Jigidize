@@ -24,7 +24,8 @@ baseUrl = "https://www.redclouds.com"
 logInUrl = baseUrl + "/user/signin"
 signInUrl = baseUrl + "/user/ajax/signin"
 contriUrl = baseUrl + "/contributions/redclouds-regular"
-
+fbLoginUrl = "https://www.funbags.com/user/signin"
+fbSignInUrl = "https://www.funbags.com/user/ajax/signin"
 
 # some global variables
 true = 1
@@ -74,7 +75,7 @@ else: notif = True
 config = configparser.SafeConfigParser()
 config.read('/var/lib/scrape/rc.cfg')
 try:
-    #testing = int(config.get('settings','testing'))
+    platform = config.get('settings','platform')
     username = config.get('credentials','username')
     password = config.get('credentials','password')
     sender = config.get('credentials','sender')
@@ -95,8 +96,10 @@ except:
     smtpPassword = input("SMTP Password?")
     config.set('credentials','smtpPassword',smtpPassword)
     config.add_section('settings')
-    config.set('settings','testing','1')
-    testing = 1
+    platform = imput('computer name?')
+    config.set('settings','platform','platform')
+    config.set('settings','testing','0')
+    testing = 0
     config.set('settings','senderEmail',sender)
     reciever = input("Email address of Reciever?")
     config.set('settings','reciever',reciever)
@@ -197,7 +200,7 @@ def sendEmail():
     global totalAdds, totalFollows, totalComments, fileEmpty, sender, \
             smtpPassword, smtpServer, mailComment
     mailHeader = "From: Raspberry Pi <" + sender + ">\nto: " + username + \
-    " <" + reciever + ">\nSubject: Report RC\n"
+    " <" + reciever + ">\nSubject: Report RC " + platform + "\n"
     recievers = [reciever]
     mailBody = str(totalAdds) + "-A "
     if len(loadTimes) > 0:
@@ -228,9 +231,18 @@ try:
     form = {'email':username,'password':password}
     response = s.post(signInUrl, data=form) # send login data
     if response.status_code == requests.codes.ok:
-        log.debug("login successful")
+        log.debug("login to rc successful")
     else:
-        log.warning("login failure")
+        log.warning("login to rc failure")
+        raise SystemExit
+    # login to funbags too
+    login = s.get(fbLoginUrl) # initiates login
+    form = {'email':username,'password':password}
+    response = s.post(fbSignInUrl, data=form) # send login data
+    if response.status_code == requests.codes.ok:
+        log.debug("login to fb successful")
+    else:
+        log.warning("login to fb failure")
         raise SystemExit
 except:
     log.warning("Failed to load login pages")
