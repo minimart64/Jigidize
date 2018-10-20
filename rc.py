@@ -96,7 +96,7 @@ except:
     smtpPassword = input("SMTP Password?")
     config.set('credentials','smtpPassword',smtpPassword)
     config.add_section('settings')
-    platform = imput('computer name?')
+    platform = input('computer name?')
     config.set('settings','platform','platform')
     config.set('settings','testing','0')
     testing = 0
@@ -150,6 +150,10 @@ def scrapeImages(pageUrl, pageFile):
         log.debug("added " + i.attrib['href'])
     contrLinks = page_html.xpath(r'//a[@class="contr-link"]')
     for i in contrLinks:
+        picAdds.append(i.attrib['href'])
+        log.debug("added " + i.attrib['href'])
+    imgLinks = page_html.xpath(r'//div[@class="image-placeholder"]/child::a[@target="_blank"]')
+    for i in imgLinks:
         picAdds.append(i.attrib['href'])
         log.debug("added " + i.attrib['href'])
     #pics = [i.attrib['href'] for i in picLinks]
@@ -272,13 +276,16 @@ else:
 # get links to images
 log.info("contris to scrape: " + str(len(contriLinks)))
 for link in contriLinks:
-    if link.startswith("https:"):
-        host = "https://" + link.split('/')[2]
-    else:
-        host = baseUrl
-    contriName = link.split('/')[-1]
-    page = loadPage(host + "/contributions/preview/" + contriName)
-    scrapeImages(link, page)
+	if len(link.split('/'))>4 and link.split('/')[3]=='flash':
+		page=loadPage(link)
+	else:
+		if link.startswith("https:"):
+			host = "https://" + link.split('/')[2]
+		else:
+			host = baseUrl
+		contriName = link.split('/')[-1]
+		page = loadPage(host + "/contributions/preview/" + contriName)
+	scrapeImages(link, page)
     
 # get the actual images
 log.info("images to add: " + str(len(picAdds)))
