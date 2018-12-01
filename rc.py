@@ -114,8 +114,8 @@ finally:
 ###### Methods ######
 
 def scrapeContris():
-	# get all the new contributions
-    log.info("scraping contributions")
+	# get all the new contributions from RC
+    log.info("scraping contributions from RC")
     contrisPage = loadPage(contriUrl)
     if contrisPage:
         date = time.strftime("%Y-%m-%d")
@@ -126,6 +126,20 @@ def scrapeContris():
             contriLinks.append(i.attrib['href'])
             log.debug("added " + i.attrib['href'])
         log.debug(contriLinks)
+        
+def scrapeVWContris():
+	# get all the new contributions from VW
+    log.info("scraping contributions from VW")
+    contrisPage = loadPage(contriUrl)
+    if contrisPage:
+        date = time.strftime("%Y-%m-%d")
+        contris_html = lxml.html.fromstring(contrisPage.text)
+        contris = contris_html.xpath(r'//a[@class="img-more-link.new-rating-block"]') 
+        log.debug(contris)
+        for i in contris:
+            contriLinks.append(i.attrib['href'])
+            log.debug("added " + i.attrib['href'])
+        log.debug(contriLinks)        
 
 def scrapeUser():
 	# get all the contributions from a user
@@ -154,6 +168,10 @@ def scrapeImages(pageUrl, pageFile):
         log.debug("added " + i.attrib['href'])
     imgLinks = page_html.xpath(r'//div[@class="image-placeholder"]/child::a[@target="_blank"]')
     for i in imgLinks:
+        picAdds.append(i.attrib['href'])
+        log.debug("added " + i.attrib['href'])
+    wrapperLinks = page_html.xpath(r'//div[@class="zm-img-wrapper"]/child::a[@target="_blank"]')
+    for i in wrapperLinks:
         picAdds.append(i.attrib['href'])
         log.debug("added " + i.attrib['href'])
     #pics = [i.attrib['href'] for i in picLinks]
