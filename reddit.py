@@ -24,16 +24,6 @@ imgDir = '/home/pi/Downloads/img'
 # URLs
 baseUrl = "https://www.reddit.com"
 logInUrl = baseUrl + "/login"
-API
-GET /user/username/where[ .json | .xml ]
-
-    ? /user/username/overview
-    ? /user/username/submitted
-    ? /user/username/comments
-    ? /user/username/liked
-    ? /user/username/disliked
-    ? /user/username/hidden
-    ? /user/username/saved
 signInUrl = baseUrl + "/user/ajax/signin"
 contriUrl = baseUrl + "/contributions/redclouds-regular"
 fbLoginUrl = "https://www.funbags.com/user/signin"
@@ -43,6 +33,7 @@ fbSignInUrl = "https://www.funbags.com/user/ajax/signin"
 true = 1
 false = 0
 fail = 0
+time_delay = 60*60*6
 picAdds = []
 contriLinks = []
 followCodes = []
@@ -88,8 +79,8 @@ config = configparser.SafeConfigParser()
 config.read('/var/lib/scrape/reddit.cfg')
 try:
     platform = config.get('settings','platform')
-    username = config.get('credentials','username')
-    password = config.get('credentials','password')
+    my_username = config.get('credentials','username')
+    my_password = config.get('credentials','password')
     clientid = config.get('credentials','clientid')
     clientsecret = config.get('credentials','clientsecret')
     useragent = config.get('credentials','useragent')
@@ -102,10 +93,10 @@ except:
     print("There was a proplem with the configuration file, it needs to be recreated")
     config = configparser.SafeConfigParser()
     config.add_section("credentials")
-    username = input("Reddit Username?")
-    config.set('credentials','username',username)
-    password = input("Reddit Password?")
-    config.set('credentials','password',password)
+    my_username = input("Reddit Username?")
+    config.set('credentials','username',my_username)
+    my_password = input("Reddit Password?")
+    config.set('credentials','password',my_password)
     sender = input("Sender E-Mail Address?")
     config.set('credentials','sender',sender)
     smtpPassword = input("SMTP Password?")
@@ -200,12 +191,13 @@ def getPic(url):
     # saves the pic to local storage
     global totalAdds
     image_name = url.split('/')[-1]
-    log.debug("get image at " + url)
-    image = s.get(url, stream=True)
-    with open (imgDir + '/' + image_name, 'wb') as fd:
-        for chunk in image.iter_content(chunk_size=128):
-            fd.write(chunk)
-    totalAdds += 1
+    if image_name:
+        log.debug("get image at " + url)
+        image = requests.get(url, stream=True)
+        with open (imgDir + '/' + image_name, 'wb') as fd:
+            for chunk in image.iter_content(chunk_size=128):
+                fd.write(chunk)
+        totalAdds += 1
     #urllib.request.urlretrieve(url, imgDir + '/' + image_name)
 
 def loadPage(pageUrl):
@@ -236,8 +228,8 @@ def sendEmail():
     log.debug("starting to send email")
     global totalAdds, totalFollows, totalComments, fileEmpty, sender, \
             smtpPassword, smtpServer, mailComment
-    mailHeader = "From: Raspberry Pi <" + sender + ">\nto: " + username + \
-    " <" + reciever + ">\nSubject: Report RC " + platform + "\n"
+    mailHeader = "From: Raspberry Pi <" + sender + ">\nto: " + my_username + \
+    " <" + reciever + ">\nSubject: Report Reddit " + platform + "\n"
     recievers = [reciever]
     mailBody = str(totalAdds) + "-A "
     if len(loadTimes) > 0:
@@ -264,32 +256,25 @@ def sendEmail():
 try:
     reddit = praw.Reddit(client_id=clientid,
                      client_secret=clientsecret,
-                     user_agent=useragent)
-    s = requests.Session()# open a session and login
-    start = s.get(baseUrl) # starts the secure session - gets cookies
-    login = s.get(logInUrl) # initiates login
-    form = {'email':username,'password':password}
-    response = s.post(signInUrl, data=form) # send login data
-    if response.status_code == requests.codes.ok:
-        log.debug("login to rc successful")
-    else:
-        log.warning("login to rc failure")
-        raise SystemExit
-    # login to funbags too
-    login = s.get(fbLoginUrl) # initiates login
-    form = {'email':username,'password':password}
-    response = s.post(fbSignInUrl, data=form) # send login data
-    if response.status_code == requests.codes.ok:
-        log.debug("login to fb successful")
-    else:
-        log.warning("login to fb failure")
-        raise SystemExit
+                     user_agent=useragent,
+                     username = my_username,
+                     password = my_password)
 except:
-    log.warning("Failed to load login pages")
+    print("Failed to load api")
+    log.warning("Failed to load api")
     raise SystemExit
 finally:
     pass
 
+for submission in reddit.front.new(limit=200):
+    log.debug(submission.url)
+    if submission.is_video:
+        log.debug("video")
+    elif submission.created_utc < time.time() - time_delay:
+        log.debug("too old " + str(submission.created_utc))
+    else:
+        picAdds.append(submission.url)
+    
 # start scraping puzzles
 if userUrl:
     # scraping users
@@ -307,21 +292,22 @@ elif testing: # in config file or -test passed in
     #scrapeUser('https://www.jigidi.com/user/Spiritual')
     #scrapeMine()
 else:
-    scrapeContris()
+    pass
+    #scrapeContris()
 
 # get links to images
 log.info("contris to scrape: " + str(len(contriLinks)))
 for link in contriLinks:
-	if len(link.split('/'))>4 and link.split('/')[3]=='flash':
-		page=loadPage(link)
-	else:
-		if link.startswith("https:"):
-			host = "https://" + link.split('/')[2]
-		else:
-			host = baseUrl
-		contriName = link.split('/')[-1]
-		page = loadPage(host + "/contributions/preview/" + contriName)
-	scrapeImages(link, page)
+    if len(link.split('/'))>4 and link.split('/')[3]=='flash':
+        page=loadPage(link)
+    else:
+        if link.startswith("https:"):
+            host = "https://" + link.split('/')[2]
+        else:
+            host = baseUrl
+        contriName = link.split('/')[-1]
+        page = loadPage(host + "/contributions/preview/" + contriName)
+    scrapeImages(link, page)
     
 # get the actual images
 log.info("images to add: " + str(len(picAdds)))
