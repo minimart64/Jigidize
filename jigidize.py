@@ -819,7 +819,9 @@ def makePuzzles(directory, command, codeFile):
             if privatize:
                 makePrivate(code)
             # then move the pic to cneed
-            shutil.move(cneeingDir + '/' + photo, cneedDir)
+            # shutil.move(cneeingDir + '/' + photo, cneedDir)
+            # no, just delete it
+            os.remove(cneeingDir + '/' + photo)
         else:
             # puzzle was already bookmarked, so this is a create failure
             # So move it back
