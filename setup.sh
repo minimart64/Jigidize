@@ -12,6 +12,9 @@ sudo apt-get install xnee -y
 sudo mkdir /var/lib/jigidize
 sudo chmod a+w /var/lib/jigidize
 touch /var/lib/jigidize/config.cfg
+sudo mkdir /var/lib/scrape
+sudo chmod a+w /var/lib/scrape
+touch /var/lib/scrape/rc.cfg
 
 # make logs folder and list files - should lists be in /logs?
 mkdir /home/pi/Documents/logs
@@ -26,6 +29,9 @@ mkdir /home/pi/Documents/PhotosPublic
 mkdir /home/pi/Documents/PhotosPrivate
 mkdir /home/pi/Documents/cneeing
 mkdir /home/pi/Documents/cneed
-mkdir /home/pi/Documents/failures
+mkdir /home/pi/Documents/staging
+mkdir /home/pi/Downloads/img
+mkdir /home/pi/Downloads/img/good
+mkdir /home/pi/Downloads/img/bad
 
 

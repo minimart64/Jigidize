@@ -8,7 +8,7 @@ localGoodDir = '/home/pi/Downloads/img/good'
 localBadDir = '/home/pi/Downloads/img/bad'
 buGoodDir = '/media/pi/storage/Stuff/classified/good'
 buBadDir = '/media/pi/storage/Stuff/classified/bad'
-tempStorageDir = '/home/pi/Documents/temp storage'
+tempStorageDir = '/home/pi/Documents/staging'
 
 cneeingDir = '/home/pi/Documents/cneeing'
 cneedDir = '/home/pi/Documents/cneed'
