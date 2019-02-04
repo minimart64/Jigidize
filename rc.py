@@ -17,7 +17,7 @@ log.setLevel(logging.DEBUG)
 log.info("__________Blank Space_________")
 log.info("##### Starting to Scrape RC #####")
 
-imgDir = '/home/pi/Downloads/img'
+imgDir = '/home/pi/Downloads/img/rc'
 
 # URLs
 baseUrl = "https://www.redclouds.com"
