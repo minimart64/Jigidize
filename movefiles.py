@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import requests, lxml.html, sys, logging, logging.handlers, smtplib, configparser
-import time, os, shutil
+import time, os, shutil, imghdr
 
 photosDir = '/home/pi/Documents/Photos'
 localGoodDir = '/home/pi/Downloads/img/good'
@@ -9,7 +9,7 @@ localBadDir = '/home/pi/Downloads/img/bad'
 buGoodDir = '/media/pi/storage/Stuff/classified/good'
 buBadDir = '/media/pi/storage/Stuff/classified/bad'
 tempStorageDir = '/home/pi/Documents/staging'
-
+imgDir = '/home/pi/Downloads/img'
 cneeingDir = '/home/pi/Documents/cneeing'
 cneedDir = '/home/pi/Documents/cneed'
 
@@ -43,7 +43,15 @@ def moveFiles():
             shutil.copy(localGoodDir + '/' + pic, tempStorageDir)
         finally:
             os.remove(localGoodDir + '/' + pic)
+
+def cleanDir(targetDir):
+    # remove files from targetDir that are not jpg or png
+    fileList = os.listdir(targetDir)
+    for img in fileList:
+        if imghdr.what(targetDir + '/' + img) not in ('jpeg', 'png'):
+            print("bad one " + img)
             
+
 def cleanCneed():
     # remove files from cneed and cneeing folders
     fileList = os.listdir(cneedDir)
@@ -55,5 +63,6 @@ def cleanCneed():
         # log.debug("removing file from cneeing: " + pic)
         os.remove(cneeingDir + '/' + pic)
 
-moveFiles()
-cleanCneed()
+#moveFiles()
+#cleanCneed()
+cleanDir(localGoodDir)
