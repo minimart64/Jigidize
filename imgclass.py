@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import sys, pygame, os, shutil, time
+import sys, pygame, os, shutil, time, imghdr
 pygame.init()
 
 imgFolder = "/home/pi/Downloads/img"
@@ -28,7 +28,13 @@ btnFont = pygame.font.Font("freesansbold.ttf",20)
 def nextImg():
     global img # image used everywhere
     imgList = os.listdir(imgFolder)
-    img = imgList[0]
+    try:
+        imghdr.what(imgFolder + "/" + pic)
+        img = imgList[0]
+    except:
+        img = imgList[1]
+    finally:
+        pass
     screen.fill(bkgColor)
     picture = pygame.image.load(imgFolder + "/" + img)
     pictRect = picture.get_rect()

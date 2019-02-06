@@ -193,6 +193,9 @@ def getPic(url):
     image_name = url.split('/')[-1]
     if image_name:
         log.debug("get image at " + url)
+        splits = image_name.split('?')
+        if len(splits) >1:
+            image_name = splits[0]
         image = requests.get(url, stream=True)
         with open (imgDir + '/' + image_name, 'wb') as fd:
             for chunk in image.iter_content(chunk_size=128):

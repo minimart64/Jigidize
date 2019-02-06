@@ -48,8 +48,21 @@ def cleanDir(targetDir):
     # remove files from targetDir that are not jpg or png
     fileList = os.listdir(targetDir)
     for img in fileList:
-        if imghdr.what(targetDir + '/' + img) not in ('jpeg', 'png'):
-            print("bad one " + img)
+        splits = img.split('?') # if name contains a ? we rename it
+        if len(splits) >1:
+            print("rename "+ img + " to " + splits[0])
+            os.rename(targetDir + '/' + img, targetDir + '/' + splits[0])
+        try:
+            if not img.endswith(".jpg") and not img.endswith(".png"):
+                # if bad name fix it
+                fileType = imghdr.what(targetDir + '/' + img)
+                if fileType not in ('jpeg', 'jpg', 'png'):
+                    print("bad one " + img + ' - ' + str(fileType))
+                    os.remove(targetDir + '/' + img)
+        except:
+            print("directory "+img)
+        finally:
+            pass
             
 
 def cleanCneed():
@@ -65,4 +78,4 @@ def cleanCneed():
 
 #moveFiles()
 #cleanCneed()
-cleanDir(localGoodDir)
+cleanDir(imgDir)
