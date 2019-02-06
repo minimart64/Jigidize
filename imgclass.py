@@ -11,10 +11,10 @@ img = imgList[0]
 
 waiting = True
 
-screenSize = display_width, display_height = 1280, 1024
+screenSize = display_width, display_height = 1270, 950
 btnWidth = 100
 btnHeight = 50
-btnTop = 850
+btnTop = display_height - btnHeight - 25
 btnLeft = 150
 btnSpace = 3
 bkgColor = 100, 100, 100
@@ -28,15 +28,24 @@ btnFont = pygame.font.Font("freesansbold.ttf",20)
 def nextImg():
     global img # image used everywhere
     imgList = os.listdir(imgFolder)
-    try:
-        imghdr.what(imgFolder + "/" + pic)
-        img = imgList[0]
-    except:
-        img = imgList[1]
-    finally:
-        pass
+    for pic in imgList:
+        try:
+            imghdr.what(imgFolder + "/" + pic)
+            img = pic
+            break
+        except:
+            print("directory? " + pic)
+        finally:
+            pass
     screen.fill(bkgColor)
     picture = pygame.image.load(imgFolder + "/" + img)
+    # get dimensions of image
+    picWidth = picture.get_width()
+    picHeight = picture.get_height()
+    if picHeight > btnTop:
+        h = btnTop
+        w = int(btnTop * picWidth / picHeight)
+        picture = pygame.transform.scale(picture, (w,h))
     pictRect = picture.get_rect()
     pictRect.center = ( (display_width/2),(btnTop/2) )
     screen.blit(picture, pictRect)
@@ -66,7 +75,8 @@ def button(msg,x,y,w,h,ic,ac,action=None):
 
 def quitApp():
     # Code to run when Quit button is clicked
-    sys.exit()
+    # sys.exit()
+    waiting = False
 
 def keepImg():
     # Code to run when Keep button is clicked
@@ -88,12 +98,6 @@ def deleteImg():
     os.remove(imgFolder + "/" + img)
     time.sleep(1)
     nextImg()
-
-def btnLabel(text, center):
-    btnText = btnFont.render(text, True, black)
-    btnTextRect = btnText.get_rect()
-    btnTextRect.center = (center)
-    return btnText, btnTextRect
 
 ### Actual code starts here ###
 screen = pygame.display.set_mode(screenSize)
