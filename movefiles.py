@@ -76,6 +76,6 @@ def cleanCneed():
         # log.debug("removing file from cneeing: " + pic)
         os.remove(cneeingDir + '/' + pic)
 
-#moveFiles()
-#cleanCneed()
+moveFiles()
+cleanCneed()
 cleanDir(imgDir)

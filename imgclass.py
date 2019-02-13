@@ -49,7 +49,8 @@ def nextImg():
     pictRect = picture.get_rect()
     pictRect.center = ( (display_width/2),(btnTop/2) )
     screen.blit(picture, pictRect)
-    titleText = btnFont.render(img, True, black) # renders img in btnFont
+    titleText = btnFont.render(img + ' (' + str(picWidth) + ' x ' + \
+            str(picHeight) + ')', True, black) # renders img in btnFont
     titleTextRect = titleText.get_rect() # Puts the text in a rect
     titleTextRect.center = (display_width/2,15) # centers the rect on the screen
     screen.blit(titleText, titleTextRect)
@@ -121,3 +122,4 @@ while waiting:
 print("done waiting")
 pygame.quit()
 quit()
+sys.exit()
