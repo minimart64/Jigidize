@@ -785,6 +785,10 @@ def makePuzzles(directory, command, codeFile):
     # directory is where the photos are
     # command is which cnee command to use
     # codeFile is which file to put the codes in
+    # clear out cneeing directory just in case
+    cneeingList = os.listdir(cneeingDir)
+    for img in cneeingList:
+		os.remove(cneeingDir + '/' + img)
     log.info("Making Puzzles in " + directory)
     fileList = os.listdir(directory)
     log.debug("File list:")
