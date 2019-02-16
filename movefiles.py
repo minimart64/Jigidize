@@ -76,14 +76,16 @@ def cleanDir(targetDir):
             splits = img.split('?') # if name contains a ? we rename it
             if len(splits) >1:
                 os.rename(targetDir + '/' + img, targetDir + '/' + splits[0])
+                img = splits[0]
                 renamed += 1
-            if not img.endswith(".jpg") and not img.endswith(".png"):
+            if not img.endswith(".jpg") and not img.endswith(".png") \
+                and not img.endswith(".jpeg"):
                 fileType = imghdr.what(targetDir + '/' + img)
                 if fileType not in ('jpeg', 'jpg', 'png'):
                     print("bad one " + img + ' - ' + str(fileType))
                     os.remove(targetDir + '/' + img)
                     removed += 1
-    print('Renamed-' + renamed + ', Removed-' + removed)
+    print('Renamed-' + str(renamed) + ', Removed-' + str(removed))
 
 def cleanCneed():
     # remove files from cneed and cneeing folders
@@ -126,7 +128,7 @@ def dedupe():
     print('images in the set ' + str(len(imageSignatures)))
     writeList(imageSignatures, imageSigsFile)
 
-dedupe()
+# dedupe()
 moveFiles()
 cleanCneed()
 cleanDir(imgDir)

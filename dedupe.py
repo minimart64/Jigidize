@@ -3,13 +3,12 @@
 import pygame, os, pickle, sys, time
 pygame.init()
 
-#stagingDir = '/home/pi/Documents/staging'
-stagingDir = '/home/pi/Downloads/img/ms'
+trainingDir = '/media/pi/storage/Stuff/classified/good'
 imageSigsFile = '/home/pi/Documents/logs/imageSigs'
 
 
 def getFeatures(pic):
-    picture = pygame.image.load(stagingDir + '/' + pic)
+    picture = pygame.image.load(trainingDir + '/' + pic)
     w = picture.get_width()
     h = picture.get_height()
     picString = pygame.image.tostring(picture, 'RGB')
@@ -41,10 +40,10 @@ except:
 finally:
     writeList(imageSignatures, imageSigsFile)
 
-fileList = os.listdir(stagingDir)
+fileList = os.listdir(trainingDir)
 
 for img in fileList:
-    if os.path.isfile(stagingDir + '/' + img):
+    if os.path.isfile(trainingDir + '/' + img):
         try:
             picSig = getFeatures(img)
             matched = False
@@ -54,8 +53,7 @@ for img in fileList:
                     break
                 elif picSig[0:-1] == i[0:-1]:
                     print(img+' is the same as '+i[-1])
-                    # print(picSig)
-                    # print(i)
+                    os.remove(trainingDir + '/' + img)
                     matched = True
                     break
             if not matched:
