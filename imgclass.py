@@ -32,13 +32,13 @@ def nextImg():
         try:
             imghdr.what(imgFolder + "/" + pic)
             img = pic
+            picture = pygame.image.load(imgFolder + "/" + img)
             break
         except:
             print("directory? " + pic)
         finally:
             pass
     screen.fill(bkgColor)
-    picture = pygame.image.load(imgFolder + "/" + img)
     # get dimensions of image
     picWidth = picture.get_width()
     picHeight = picture.get_height()
@@ -50,7 +50,7 @@ def nextImg():
     pictRect.center = ( (display_width/2),(btnTop/2) )
     screen.blit(picture, pictRect)
     titleText = btnFont.render(img + ' (' + str(picWidth) + ' x ' + \
-            str(picHeight) + ')', True, black) # renders img in btnFont
+            str(picHeight) + ') ('+str(len(imgList))+')', True, black) # renders img in btnFont
     titleTextRect = titleText.get_rect() # Puts the text in a rect
     titleTextRect.center = (display_width/2,15) # centers the rect on the screen
     screen.blit(titleText, titleTextRect)
@@ -76,7 +76,7 @@ def button(msg,x,y,w,h,ic,ac,action=None):
 
 def quitApp():
     # Code to run when Quit button is clicked
-    # sys.exit()
+    sys.exit()
     waiting = False
 
 def keepImg():

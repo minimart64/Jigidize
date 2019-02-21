@@ -15,15 +15,16 @@ cneedDir = '/home/pi/Documents/cneed'
 imageSigsFile = '/home/pi/Documents/logs/imageSigs'
 
 def getFeatures(pic):
-    picture = pygame.image.load(stagingDir + '/' + pic)
+    picture = pygame.image.load(pic)
+    picName = pic.split('/')[-1]
     w = picture.get_width()
     h = picture.get_height()
     picString = pygame.image.tostring(picture, 'RGB')
     l = len(picString)
     s = sum(picString)
     a = s/l
-    # print(str(w)+', '+str(h)+', '+str(l)+', '+str(s)+', '+pic)
-    features = (w, h, l, s, a, pic)
+    # print(str(w)+', '+str(h)+', '+str(l)+', '+str(s)+', '+picName)
+    features = (w, h, l, s, a, picName)
     return features
 
 def loadList(listFile):
@@ -69,22 +70,40 @@ def moveFiles():
 
 def cleanDir(targetDir):
     # remove files from targetDir that are not jpg or png
+    # get directories from bu and check for duplicates
+    if targetDir == buGoodDir:
+        goodList = ()
+    elif targetDir == buBadDir:
+        goodList = os.listdir(buGoodDir)
+    else:
+        goodList = os.listdir(buGoodDir)
+        badList = os.listdir(buBadDir)
+        goodList.extend(os.listdir(buBadDir))
+    print('good list count ' + str(len(goodList)))
     fileList = os.listdir(targetDir)
     renamed = removed = 0
     for img in fileList:
-        if os.path.isfile(targetDir + '/' + img):
-            splits = img.split('?') # if name contains a ? we rename it
-            if len(splits) >1:
-                os.rename(targetDir + '/' + img, targetDir + '/' + splits[0])
-                img = splits[0]
-                renamed += 1
-            if not img.endswith(".jpg") and not img.endswith(".png") \
-                and not img.endswith(".jpeg"):
-                fileType = imghdr.what(targetDir + '/' + img)
-                if fileType not in ('jpeg', 'jpg', 'png'):
-                    print("bad one " + img + ' - ' + str(fileType))
-                    os.remove(targetDir + '/' + img)
-                    removed += 1
+        try:
+            goodList.index(img) # if its in the list, we delete it
+            print('duplicate ' + img)
+            os.remove(targetDir + '/' + img)
+            removed += 1
+        except:
+            if os.path.isfile(targetDir + '/' + img):
+                splits = img.split('?') # if name contains a ? we rename it
+                if len(splits) >1:
+                    os.rename(targetDir + '/' + img, targetDir + '/' + splits[0])
+                    img = splits[0]
+                    renamed += 1
+                if not img.endswith(".jpg") and not img.endswith(".png") \
+                    and not img.endswith(".jpeg"):
+                    fileType = imghdr.what(targetDir + '/' + img)
+                    if fileType not in ('jpeg', 'jpg', 'png'):
+                        print("bad one " + img + ' - ' + str(fileType))
+                        os.remove(targetDir + '/' + img)
+                        removed += 1
+        finally:
+            pass
     print('Renamed-' + str(renamed) + ', Removed-' + str(removed))
 
 def cleanCneed():
@@ -96,39 +115,51 @@ def cleanCneed():
     for pic in fileList:
         os.remove(cneeingDir + '/' + pic)
 
-def dedupe():
+def dedupe(targetDir):
     # checks file features against list of files that have been published
     # files that match signatures are deleted
     # files that do not match are moved to photos directory 
-    # and added to the list     
+    # and added to the list  
+    removed = 0   
     try: 
         imageSignatures = loadList(imageSigsFile)
     except:
         imageSignatures = []
     finally:
         writeList(imageSignatures, imageSigsFile)
-    fileList = os.listdir(stagingDir)
+    fileList = os.listdir(targetDir)
     for img in fileList:
-        if os.path.isfile(stagingDir + '/' + img):
-            picSig = getFeatures(img)
-            matched = False
-            for i in imageSignatures:
-                if picSig[-1] == i[-1]:
-                    print(img + ' is a duplicate')
-                    break
-                elif picSig[0:-1] == i[0:-1]:
-                    print(img+' is the same as '+i[-1])
-                    matched = True
-                    break
-            if not matched:
-                # print('added '+picSig[3])
-                imageSignatures.append(picSig)
-                shutil.copy(stagingDir + '/' + img, photosDir)
-            os.remove(stagingDir + '/' + img)
+        if os.path.isfile(targetDir + '/' + img):
+            try:
+                picSig = getFeatures(targetDir + '/' + img)
+                matched = False
+                for i in imageSignatures:
+                    if picSig[-1] == i[-1]:
+                        print(img + ' is a duplicate')
+                        matched = True
+                        break
+                    elif picSig[0:-1] == i[0:-1]:
+                        print(img+' is the same as '+i[-1])
+                        os.remove(targetDir + '/' + img)
+                        removed += 1
+                        matched = True
+                        break
+                if not matched:
+                    # print('added '+picSig[3])
+                    imageSignatures.append(picSig)
+                    if targetDir == stagingDir:
+                        shutil.move(targetDir + '/' + img, photosDir)
+            except:
+                print('invalid file: ' + img)
+            finally:
+                pass
     print('images in the set ' + str(len(imageSignatures)))
+    print('Removed '+ str(removed) +' duplicates')
     writeList(imageSignatures, imageSigsFile)
 
-# dedupe()
+dedupe(localGoodDir)
+dedupe(localBadDir)
 moveFiles()
-cleanCneed()
+# cleanCneed()
 cleanDir(imgDir)
+dedupe(imgDir)

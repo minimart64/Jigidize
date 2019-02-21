@@ -3,7 +3,7 @@
 import pygame, os, pickle, sys, time
 pygame.init()
 
-trainingDir = '/media/pi/storage/Stuff/classified/good'
+trainingDir = '/media/pi/storage/Stuff/classified/bad'
 imageSigsFile = '/home/pi/Documents/logs/imageSigs'
 
 
@@ -50,6 +50,7 @@ for img in fileList:
             for i in imageSignatures:
                 if picSig[-1] == i[-1]:
                     print(img + ' is a duplicate')
+                    matched = True
                     break
                 elif picSig[0:-1] == i[0:-1]:
                     print(img+' is the same as '+i[-1])
