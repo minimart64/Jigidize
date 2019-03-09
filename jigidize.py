@@ -789,8 +789,8 @@ def makePuzzles(directory, command, codeFile):
     cneeingList = os.listdir(cneeingDir)
     for img in cneeingList:
         os.remove(cneeingDir + '/' + img)
-    log.info("Making Puzzles in " + directory)
     fileList = os.listdir(directory)
+    log.info("Making " + str(len(fileLlist)) + " Puzzles in " + directory)
     log.debug("File list:")
     log.debug(fileList)
     for photo in fileList:
