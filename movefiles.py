@@ -136,6 +136,8 @@ def dedupe(targetDir):
                 for i in imageSignatures:
                     if picSig[-1] == i[-1]:
                         print(img + ' is a duplicate')
+                        if targetDir == stagingDir:
+                            shutil.move(targetDir + '/' + img, photosDir)
                         matched = True
                         break
                     elif picSig[0:-1] == i[0:-1]:
@@ -159,7 +161,9 @@ def dedupe(targetDir):
 
 dedupe(localGoodDir)
 dedupe(localBadDir)
+# dedupe(stagingDir)
 moveFiles()
 # cleanCneed()
 cleanDir(imgDir)
 dedupe(imgDir)
+
