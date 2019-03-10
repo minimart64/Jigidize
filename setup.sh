@@ -8,6 +8,9 @@ sudo apt-get install python3-lxml -y
 # install xnee for makepuzzles
 sudo apt-get install xnee -y
 
+# install praw for reddit api
+pip install praw
+
 # make the config file - should I move it?
 sudo mkdir /var/lib/jigidize
 sudo chmod a+w /var/lib/jigidize
