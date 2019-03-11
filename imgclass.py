@@ -25,6 +25,8 @@ dkGreen = 50, 150, 50
 ltGreen = 0, 250, 0
 btnFont = pygame.font.Font("freesansbold.ttf",20)
 
+dbi = 0.2 # debounce interval
+
 def nextImg():
     global img # image used everywhere
     imgList = os.listdir(imgFolder)
@@ -35,7 +37,8 @@ def nextImg():
             picture = pygame.image.load(imgFolder + "/" + img)
             break
         except:
-            print("directory? " + pic)
+            # print("directory? " + pic)
+            pass
         finally:
             pass
     screen.fill(bkgColor)
@@ -83,21 +86,21 @@ def keepImg():
     # Code to run when Keep button is clicked
     print("moving " + img + " to good")
     shutil.move(imgFolder + "/" + img, keepFolder)
-    time.sleep(1)
+    time.sleep(dbi)
     nextImg()
     
 def tossImg():
     # Code to run when Toss button is clicked
     print("moving " + img + " to bad")
     shutil.move(imgFolder + "/" + img, tossFolder)
-    time.sleep(1)
+    time.sleep(dbi)
     nextImg()
 
 def deleteImg():
     # Code to run when Delete button is clicked
     print("deleting " + img)
     os.remove(imgFolder + "/" + img)
-    time.sleep(1)
+    time.sleep(dbi)
     nextImg()
 
 ### Actual code starts here ###
