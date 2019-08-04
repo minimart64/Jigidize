@@ -3,7 +3,7 @@
 import pygame, os, pickle, sys, time
 pygame.init()
 
-trainingDir = '/media/pi/storage/Stuff/classified/bad'
+trainingDir = '/media/pi/storage/Stuff/classified/good'
 imageSigsFile = '/home/pi/Documents/logs/imageSigs'
 
 
@@ -42,6 +42,7 @@ finally:
 
 fileList = os.listdir(trainingDir)
 
+fileCount = 0
 for img in fileList:
     if os.path.isfile(trainingDir + '/' + img):
         try:
@@ -63,7 +64,9 @@ for img in fileList:
         except:
             print('invalid file: ' + img)
         finally:
-            pass
+            fileCount += 1
+            if (fileCount % 1000 == 0):
+                print(fileCount)
 
 print('images in the set ' + str(len(imageSignatures)))
 writeList(imageSignatures, imageSigsFile)
