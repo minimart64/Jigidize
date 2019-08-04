@@ -25,7 +25,7 @@ dkGreen = 50, 150, 50
 ltGreen = 0, 250, 0
 btnFont = pygame.font.Font("freesansbold.ttf",20)
 
-dbi = 0.2 # debounce interval
+dbi = 0.3 # debounce interval
 
 def nextImg():
     global img # image used everywhere

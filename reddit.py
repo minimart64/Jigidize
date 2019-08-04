@@ -256,6 +256,12 @@ def sendEmail():
 
 #############################
 ## actual code starts here ##
+
+# if there are already over 1,000 pics in img, dont get more
+if len(os.listdir(imgDir)) > 1000:
+    print("You already have 1,000 imgs")
+    raise SystemExit
+    
 try:
     reddit = praw.Reddit(client_id=clientid,
                      client_secret=clientsecret,
