@@ -67,7 +67,7 @@ else: notif = True
 config = configparser.SafeConfigParser()
 config.read('/var/lib/scrape/rc.cfg')
 try:
-    #testing = int(config.get('settings','testing'))
+    platform = config.get('settings','platform')
     username = config.get('credentials','username')
     password = config.get('credentials','password')
     sender = config.get('credentials','sender')
@@ -88,8 +88,10 @@ except:
     smtpPassword = input("SMTP Password?")
     config.set('credentials','smtpPassword',smtpPassword)
     config.add_section('settings')
-    config.set('settings','testing','1')
-    testing = 1
+    platform = input('computer name?')
+    config.set('settings','platform','platform')
+    config.set('settings','testing','0')
+    testing = 0
     config.set('settings','senderEmail',sender)
     reciever = input("Email address of Reciever?")
     config.set('settings','reciever',reciever)
@@ -186,7 +188,7 @@ def sendEmail():
     global totalAdds, totalFollows, totalComments, fileEmpty, sender, \
             smtpPassword, smtpServer, mailComment
     mailHeader = "From: Raspberry Pi <" + sender + ">\nto: " + username + \
-    " <" + reciever + ">\nSubject: Report fan MS\n"
+    " <" + reciever + ">\nSubject: Report MS " + platform + "\n"
     recievers = [reciever]
     mailBody = str(totalAdds) + "-A "
     if len(loadTimes) > 0:
