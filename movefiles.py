@@ -161,7 +161,7 @@ def dedupe(targetDir):
 
 dedupe(localGoodDir)
 dedupe(localBadDir)
-# dedupe(stagingDir)
+dedupe(stagingDir)
 moveFiles()
 # cleanCneed()
 cleanDir(imgDir)
