@@ -9,7 +9,7 @@ sudo apt-get install python3-lxml -y
 sudo apt-get install xnee -y
 
 # install praw for reddit api
-pip install praw
+pip3 install praw
 
 # make the config file - should I move it?
 sudo mkdir /var/lib/jigidize

@@ -3,19 +3,79 @@
 import pygame, sys, pickle
 import time, os, shutil, imghdr
 
+#directory paths
+localDir = '/home/pi/Downloads'
 photosDir = '/home/pi/Documents/Photos'
-localGoodDir = '/home/pi/Downloads/img/good'
-localBadDir = '/home/pi/Downloads/img/bad'
-buGoodDir = '/media/pi/storage/Stuff/classified/good'
-buBadDir = '/media/pi/storage/Stuff/classified/bad'
+localGoodDir = localDir + '/img/good'
+localBadDir = localDir + '/img/bad'
+buDir = '/media/pi/storage/Stuff/classified'
+buGoodDir = buDir + '/good'
+buBadDir = buDir + '/bad'
 stagingDir = '/home/pi/Documents/staging'
-imgDir = '/home/pi/Downloads/img'
+imgDir = localDir + '/img'
 cneeingDir = '/home/pi/Documents/cneeing'
 cneedDir = '/home/pi/Documents/cneed'
 imageSigsFile = '/home/pi/Documents/logs/imageSigs'
 
+# check to see if arguments were passed in with the command
+inputValues = sys.argv # 0 is this script, 1 and 2 are inputs
+inputDir = imgDir
+inputFunction = 'F'
+
+if len(inputValues) > 1: # 1 extra argument was entered
+    log.info("passed in values:")
+    log.info(inputValues)
+    if inputValues[1] == '-a': # dedupeGlobal all
+        inputFunction = 'A'
+    elif inputValues[1] == '-m':
+        inputFunction = 'M'
+    elif inputValue[1] =='-h':
+        print("-f for folder, -g for global followed by the path to dedupe. \
+            -a for all, -m for dedupe and move")
+    elif inputValues[1] == '-f' or inputValues[1] == '-g' and \
+        len(inputValues) == 2:
+        print("These switches need to be followed by a path")
+        raise SystemExit
+    else: 
+        print("invalid argument")
+        raise SystemExit
+if len(inputValues) > 2: # 2 or more extra arguments were entered
+    inputDir = inputValues[2]
+    # need to validate path
+    # first clean it up a little
+    if inputDir.startswith('~'):
+        inputDir = '/home/pi' + inputDir[1:]
+    elif not inputDir.startswith('/'):
+        inputDir = '/' + inputDir
+    else: # not sure what else could go wrong
+        inputDir = inputDir
+    # now check to see if it's a real path
+    if os.path.isdir(inputDir):
+        print(inputDir)
+    elif os.path.isdir('/home/pi' + inputDir):
+        inputDir = '/home/pi' + inputDir
+    elif os.path.isdir(localDir + inputDir):
+        inputDir = localDir + inputDir
+    elif os.path.isdir(buDir + inputDir):
+        inputDir = buDir + inputDir
+    else: # nothing works... it's bad
+        print("The directory you specified is not valid")
+        raise SystemExit
+    if inputValues[1] == '-f':
+        inputFunction = 'F'
+    elif inputValues[1] == '-g':
+        inputFunction = 'G'
+    else:
+        print("invalid argument")
+        raise SystemExit
+else: # no input values, we assume -f imgDir
+    inputDir = imgDir
+    inputFunction = 'F'
+   
+
 def getFeatures(pic):
     picture = pygame.image.load(pic)
+    # resize the pic
     picName = pic.split('/')[-1]
     w = picture.get_width()
     h = picture.get_height()
@@ -43,28 +103,22 @@ def writeList(codeList, listFile):
 def moveFiles():
     # moves files from the local classified folders to storage
     # if a file already exists in storage, delete it instead
-    # move good files to staging for final evaluation
     badList = os.listdir(buBadDir)
     fileList = os.listdir(localBadDir)
     for pic in fileList:
-        # log.debug("checking for bad file in storage: " + pic)
         try:
             badList.index(pic)
         except:
-            # log.debug("Moving bad file to storage: " + pic)
             shutil.copy(localBadDir + '/' + pic, buBadDir)
         finally:
             os.remove(localBadDir + '/' + pic)
     goodList = os.listdir(buGoodDir)
     fileList = os.listdir(localGoodDir)
     for pic in fileList:
-        # log.debug("checking for bad file in storage: " + pic)
         try:
             goodList.index(pic)
         except:
-            # log.debug("Moving bad file to storage: " + pic)
             shutil.copy(localGoodDir + '/' + pic, buGoodDir)
-            shutil.copy(localGoodDir + '/' + pic, stagingDir)
         finally:
             os.remove(localGoodDir + '/' + pic)
 
@@ -106,26 +160,20 @@ def cleanDir(targetDir):
             pass
     print('Renamed-' + str(renamed) + ', Removed-' + str(removed))
 
-def cleanCneed():
-    # remove files from cneed and cneeing folders
-    fileList = os.listdir(cneedDir)
-    for pic in fileList:
-        os.remove(cneedDir + '/' + pic)
-    fileList = os.listdir(cneeingDir)
-    for pic in fileList:
-        os.remove(cneeingDir + '/' + pic)
-
-def dedupe(targetDir):
+def dedupeGlobal(targetDir):
     # checks file features against list of files that have been published
     # files that match signatures are deleted
     # files that do not match are moved to photos directory 
     # and added to the list  
+    print("globally deduping the folder " + targetDir)
     removed = 0   
     try: 
         imageSignatures = loadList(imageSigsFile)
     except:
         imageSignatures = []
     finally:
+        if targetDir == buGoodDir:
+            imageSignatures = []
         writeList(imageSignatures, imageSigsFile)
     fileList = os.listdir(targetDir)
     for img in fileList:
@@ -136,21 +184,17 @@ def dedupe(targetDir):
                 for i in imageSignatures:
                     if picSig[-1] == i[-1]:
                         print(img + ' is a duplicate')
-                        if targetDir == stagingDir:
-                            shutil.move(targetDir + '/' + img, photosDir)
                         matched = True
                         break
                     elif picSig[0:-1] == i[0:-1]:
                         print(img+' is the same as '+i[-1])
-                        os.remove(targetDir + '/' + img)
-                        removed += 1
                         matched = True
                         break
-                if not matched:
-                    # print('added '+picSig[3])
+                if matched:
+                    os.remove(targetDir + '/' + img)
+                    removed += 1
+                else:
                     imageSignatures.append(picSig)
-                    if targetDir == stagingDir:
-                        shutil.move(targetDir + '/' + img, photosDir)
             except:
                 print('invalid file: ' + img)
             finally:
@@ -159,11 +203,62 @@ def dedupe(targetDir):
     print('Removed '+ str(removed) +' duplicates')
     writeList(imageSignatures, imageSigsFile)
 
-dedupe(localGoodDir)
-dedupe(localBadDir)
-dedupe(stagingDir)
-moveFiles()
-# cleanCneed()
-cleanDir(imgDir)
-dedupe(imgDir)
+def dedupeFolder(targetDir):
+    # gets features for images in the directory and builds the list
+    # if a duplicate is found, it is deleted
+    # does not retain the list
+    print("deduping the folder " + targetDir)
+    removed = 0   
+    imageSignatures = []
+    fileList = os.listdir(targetDir)
+    for img in fileList:
+        if os.path.isfile(targetDir + '/' + img):
+            try:
+                picSig = getFeatures(targetDir + '/' + img)
+                matched = False
+                for i in imageSignatures:
+                    if picSig[0:-1] == i[0:-1]:
+                        print(img+' is the same as '+i[-1])
+                        os.remove(targetDir + '/' + img)
+                        removed += 1
+                        matched = True
+                        break
+                if not matched:
+                    imageSignatures.append(picSig)
+            except:
+                print('invalid file: ' + img)
+            finally:
+                pass
+    print('images in the set ' + str(len(imageSignatures)))
+    print('Removed '+ str(removed) +' duplicates')
+    writeList(imageSignatures, imageSigsFile)
 
+#-----------------#
+# Code starts here
+#-----------------#
+
+if inputFunction == 'F':
+    dedupeFolder(inputDir)
+elif inputFunction == 'G':
+    if inputDir == buBadDir:
+        dedupeGlobal(buGoodDir)
+        dedupeGlobal(buBadDir)
+    else:
+        dedupeGlobal(inputDir)
+elif inputFunction == 'A':
+    print("deduping everything")
+    dedupeGlobal(buGoodDir)
+    dedupeGlobal(buBadDir)
+    dedupeGlobal(localGoodDir)
+    dedupeGlobal(localBadDir)
+    dedupeGlobal(imgDir)
+elif inputFunction == 'M':
+    print("dedupe and move")
+    dedupeGlobal(localGoodDir)
+    dedupeGlobal(localBadDir)
+    dedupeGlobal(imgDir)
+    moveFiles()
+else:
+    print("nothing to do") # this should not be possible
+
+# all done

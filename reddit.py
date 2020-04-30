@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
 
 import requests, lxml.html, sys, logging, logging.handlers, smtplib, configparser
-import time, os, shutil, urllib.request
+import time, os, shutil, urllib.request, ssl, socket
 from pprint import pprint
 import json, praw
-
-# TODO make puzzle and puzzlepub files into lists
-# TODO add scrape of my puzzles to bookmark and build puzzle list
 
 # set up the logger
 log = logging.getLogger('reddit')
@@ -26,8 +23,6 @@ baseUrl = "https://www.reddit.com"
 logInUrl = baseUrl + "/login"
 signInUrl = baseUrl + "/user/ajax/signin"
 contriUrl = baseUrl + "/contributions/redclouds-regular"
-fbLoginUrl = "https://www.funbags.com/user/signin"
-fbSignInUrl = "https://www.funbags.com/user/ajax/signin"
 
 # some global variables
 true = 1
@@ -43,42 +38,15 @@ totalAdds = totalFollows = totalComments = 0
 fileEmpty = 0
 loadFailCount = loadErrCount = 0
 mailComment = ""
-
-# check to see if arguments were passed in with the command
-inputValues = sys.argv
-userUrl = None
-publishCount = newPuzzleCount = newPubPuzzCount = setSize = notif = \
-    scrapeMyPuzzles = recoverMyPuzzles = privatize = makingPuzzles = \
-    privatizingPuzzles = testing = 0
-
-if len(inputValues) > 1: # extra arguements were entered
-    log.info("passed in values:")
-    log.info(inputValues)
-    if inputValues[1] == '-u': # next argument should be a username
-        if len(inputValues) > 2:
-            userUrl = baseUrl + "/user/albums/" + inputValues[2]
-        else:
-            log.info("User selected, but no username provided")
-    elif inputValues[1] == '-p': # publish some puzzles
-        if len(inputValues) > 2:
-            publishCount = int(inputValues[2])
-        else:
-            publishCount = 2
-        notif = True
-        log.info("Publishing " + str(publishCount) + " puzzles")
-    else:
-        print("invalid argument")
-        raise SystemExit
-else: notif = True
-    
+platform = socket.gethostname()
 
 # read in the configuration file
 # try to open the file, if it's not there, create one
 # add -c switch to allow editing of the file
-config = configparser.SafeConfigParser()
+config = configparser.ConfigParser()
 config.read('/var/lib/scrape/reddit.cfg')
 try:
-    platform = config.get('settings','platform')
+    # platform = config.get('settings','platform')
     my_username = config.get('credentials','username')
     my_password = config.get('credentials','password')
     clientid = config.get('credentials','clientid')
@@ -118,90 +86,22 @@ finally:
     pass
 
 ###### Methods ######
-
-def scrapeContris():
-	# get all the new contributions from RC
-    log.info("scraping contributions from RC")
-    contrisPage = loadPage(contriUrl)
-    if contrisPage:
-        date = time.strftime("%Y-%m-%d")
-        contris_html = lxml.html.fromstring(contrisPage.text)
-        contris = contris_html.xpath(r'//div[@data-date="' + date + '"]/child::a[@class="pv"]') 
-        log.debug(contris)
-        for i in contris:
-            contriLinks.append(i.attrib['href'])
-            log.debug("added " + i.attrib['href'])
-        log.debug(contriLinks)
-        
-def scrapeVWContris():
-	# get all the new contributions from VW
-    log.info("scraping contributions from VW")
-    contrisPage = loadPage(contriUrl)
-    if contrisPage:
-        date = time.strftime("%Y-%m-%d")
-        contris_html = lxml.html.fromstring(contrisPage.text)
-        contris = contris_html.xpath(r'//a[@class="img-more-link.new-rating-block"]') 
-        log.debug(contris)
-        for i in contris:
-            contriLinks.append(i.attrib['href'])
-            log.debug("added " + i.attrib['href'])
-        log.debug(contriLinks)        
-
-def scrapeUser():
-	# get all the contributions from a user
-    log.info("scraping user " + userUrl)
-    contrisPage = loadPage(userUrl)
-    if contrisPage:
-        contris_html = lxml.html.fromstring(contrisPage.text)
-        contris = contris_html.xpath(r'//a[@class="one-item"]') 
-        log.debug(contris)
-        for i in contris:
-            contriLinks.append(i.attrib['href'])
-            log.debug("added " + i.attrib['href'])
-        log.debug(contriLinks)
-        
-def scrapeImages(pageUrl, pageFile):
-    # get the images from the contribution page
-    log.debug("Scraping " + pageFile.url)
-    page_html = lxml.html.fromstring(pageFile.text)
-    picLinks = page_html.xpath(r'//a[@class="one-preview"]')
-    for i in picLinks:
-        picAdds.append(i.attrib['href'])
-        log.debug("added " + i.attrib['href'])
-    contrLinks = page_html.xpath(r'//a[@class="contr-link"]')
-    for i in contrLinks:
-        picAdds.append(i.attrib['href'])
-        log.debug("added " + i.attrib['href'])
-    imgLinks = page_html.xpath(r'//div[@class="image-placeholder"]/child::a[@target="_blank"]')
-    for i in imgLinks:
-        picAdds.append(i.attrib['href'])
-        log.debug("added " + i.attrib['href'])
-    wrapperLinks = page_html.xpath(r'//div[@class="zm-img-wrapper"]/child::a[@target="_blank"]')
-    for i in wrapperLinks:
-        picAdds.append(i.attrib['href'])
-        log.debug("added " + i.attrib['href'])
-    #pics = [i.attrib['href'] for i in picLinks]
-    #log.debug("pics to add")
-    #log.debug(pics)
-    #picAdds.append(pics)
-    log.debug("total pics " + str(len(picAdds)))
-    log.debug(picAdds)
     
 def getPic(url):
     # saves the pic to local storage
     global totalAdds
-    image_name = url.split('/')[-1]
-    if image_name:
+    image_name = url.split('/')[-1].split('?')[0]
+    if image_name.endswith(".jpg") or image_name.endswith(".png") \
+            or image_name.endswith(".jpeg"):
         log.debug("get image at " + url)
-        splits = image_name.split('?')
-        if len(splits) >1:
-            image_name = splits[0]
+        #splits = image_name.split('?')
+        #if len(splits) >1:
+        #    image_name = splits[0]
         image = requests.get(url, stream=True)
         with open (imgDir + '/' + image_name, 'wb') as fd:
             for chunk in image.iter_content(chunk_size=128):
                 fd.write(chunk)
         totalAdds += 1
-    #urllib.request.urlretrieve(url, imgDir + '/' + image_name)
 
 def loadPage(pageUrl):
     global loadTimes, loadFailCount, loadErrCount
@@ -244,15 +144,19 @@ def sendEmail():
         statistics = ""
     msg = mailHeader + mailBody + statistics
     log.debug("Mail message: " + msg)
-    mailServer = smtplib.SMTP('smtp.comcast.net', 587)
-    mailServer.login(sender, smtpPassword)
-    mailServer.starttls()
+    # create a secure SSL context
+    sslContext = ssl.create_default_context()
+    # Try to log in to server and send email
     try:
+        mailServer = smtplib.SMTP('smtp.comcast.net', 587)
+        mailServer.starttls(context=sslContext)
+        mailServer.login(sender, smtpPassword)
         mailServer.sendmail(sender, recievers, msg)
         log.info('Mail sent')
         log.info(statistics)
-    except:
+    except Exception as e:
         log.warning('Mail not sent')
+        log.warning(e)
 
 #############################
 ## actual code starts here ##
@@ -261,7 +165,8 @@ def sendEmail():
 if len(os.listdir(imgDir)) > 1000:
     print("You already have 1,000 imgs")
     raise SystemExit
-    
+
+# attempt to connect to the API
 try:
     reddit = praw.Reddit(client_id=clientid,
                      client_secret=clientsecret,
@@ -275,7 +180,8 @@ except:
 finally:
     pass
 
-for submission in reddit.front.new(limit=200):
+# read the first 300 items in the front page
+for submission in reddit.front.new(limit=300):
     log.debug(submission.url)
     if submission.is_video:
         log.debug("video")
@@ -284,40 +190,6 @@ for submission in reddit.front.new(limit=200):
     else:
         picAdds.append(submission.url)
     
-# start scraping puzzles
-if userUrl:
-    # scraping users
-    scrapeUser()
-elif testing: # in config file or -test passed in
-    log.info("Testing")
-    #puzzle = loadPage(puzzleUrl + '26ZCX2BQ')
-    #addCodes.append('6X8PDQQN') 
-    #myCodes.append('26ZCX2BQ') #pumpkin in her jacket
-    #myCodes.append('MUM8225R') #pretty in pink
-    #if puzzle:
-        #addMine(puzzle, '26ZCX2BQ') #pumpkin in her jacket
-        #publishPuzzle('26ZCX2BQ') #pumpkin in her jacket
-    #scrapePuzzle('US8EUSFG') #Hubble
-    #scrapeUser('https://www.jigidi.com/user/Spiritual')
-    #scrapeMine()
-else:
-    pass
-    #scrapeContris()
-
-# get links to images
-log.info("contris to scrape: " + str(len(contriLinks)))
-for link in contriLinks:
-    if len(link.split('/'))>4 and link.split('/')[3]=='flash':
-        page=loadPage(link)
-    else:
-        if link.startswith("https:"):
-            host = "https://" + link.split('/')[2]
-        else:
-            host = baseUrl
-        contriName = link.split('/')[-1]
-        page = loadPage(host + "/contributions/preview/" + contriName)
-    scrapeImages(link, page)
-    
 # get the actual images
 log.info("images to add: " + str(len(picAdds)))
 for pic in picAdds:
@@ -325,10 +197,6 @@ for pic in picAdds:
     getPic(pic)
 
 log.info("Total Adds:" + str(totalAdds))
-#log.info("Total Follows:" + str(totalFollows))
-#log.info("Total Comments:" + str(totalComments))
-
-#writeList(puzzleFile, puzzleListFile)
 sendEmail()
 
 # all done

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import requests, lxml.html, sys, logging, logging.handlers, smtplib, configparser
-import time, os, shutil, urllib.request
+import time, os, shutil, urllib.request, ssl, socket
 
 # TODO make puzzle and puzzlepub files into lists
 # TODO add scrape of my puzzles to bookmark and build puzzle list
@@ -40,13 +40,11 @@ totalAdds = totalFollows = totalComments = 0
 fileEmpty = 0
 loadFailCount = loadErrCount = 0
 mailComment = ""
+platform = socket.gethostname()
 
 # check to see if arguments were passed in with the command
 inputValues = sys.argv
 userUrl = None
-publishCount = newPuzzleCount = newPubPuzzCount = setSize = notif = \
-    scrapeMyPuzzles = recoverMyPuzzles = privatize = makingPuzzles = \
-    privatizingPuzzles = testing = 0
 
 if len(inputValues) > 1: # extra arguements were entered
     log.info("passed in values:")
@@ -56,26 +54,18 @@ if len(inputValues) > 1: # extra arguements were entered
             userUrl = baseUrl + "/user/albums/" + inputValues[2]
         else:
             log.info("User selected, but no username provided")
-    elif inputValues[1] == '-p': # publish some puzzles
-        if len(inputValues) > 2:
-            publishCount = int(inputValues[2])
-        else:
-            publishCount = 2
-        notif = True
-        log.info("Publishing " + str(publishCount) + " puzzles")
     else:
         print("invalid argument")
         raise SystemExit
 else: notif = True
     
-
 # read in the configuration file
 # try to open the file, if it's not there, create one
 # add -c switch to allow editing of the file
-config = configparser.SafeConfigParser()
+config = configparser.ConfigParser()
 config.read('/var/lib/scrape/rc.cfg')
 try:
-    platform = config.get('settings','platform')
+    # platform = config.get('settings','platform')
     username = config.get('credentials','username')
     password = config.get('credentials','password')
     sender = config.get('credentials','sender')
@@ -184,7 +174,7 @@ def scrapeImages(pageUrl, pageFile):
 def getPic(url):
     # saves the pic to local storage
     global totalAdds
-    image_name = url.split('/')[-1]
+    image_name = url.split('/')[-1].split('?')[0]
     log.debug("get image at " + url)
     image = s.get(url, stream=True)
     with open (imgDir + '/' + image_name, 'wb') as fd:
@@ -234,36 +224,42 @@ def sendEmail():
         statistics = ""
     msg = mailHeader + mailBody + statistics
     log.debug("Mail message: " + msg)
-    mailServer = smtplib.SMTP('smtp.comcast.net', 587)
-    mailServer.login(sender, smtpPassword)
-    mailServer.starttls()
+    # create a secure SSL context
+    sslContext = ssl.create_default_context()
+    # Try to log in to server and send email
     try:
+        mailServer = smtplib.SMTP('smtp.comcast.net', 587)
+        mailServer.starttls(context=sslContext)
+        mailServer.login(sender, smtpPassword)
         mailServer.sendmail(sender, recievers, msg)
         log.info('Mail sent')
         log.info(statistics)
-    except:
+    except Exception as e:
         log.warning('Mail not sent')
+        log.warning(e)
 
 #############################
 ## actual code starts here ##
+
+# open session and login to the server
 try:
     s = requests.Session()# open a session and login
     start = s.get(baseUrl) # starts the secure session - gets cookies
     login = s.get(logInUrl) # initiates login
     form = {'email':username,'password':password}
     response = s.post(signInUrl, data=form) # send login data
-    if response.status_code == requests.codes.ok:
+    if response.status_code == requests.codes.ok: # login accepted
         log.debug("login to rc successful")
-    else:
+    else: # server did not accept login
         log.warning("login to rc failure")
         raise SystemExit
     # login to funbags too
     login = s.get(fbLoginUrl) # initiates login
     form = {'email':username,'password':password}
     response = s.post(fbSignInUrl, data=form) # send login data
-    if response.status_code == requests.codes.ok:
+    if response.status_code == requests.codes.ok: # login accepted
         log.debug("login to fb successful")
-    else:
+    else: # server did not accept login
         log.warning("login to fb failure")
         raise SystemExit
 except:
@@ -276,19 +272,8 @@ finally:
 if userUrl:
     # scraping users
     scrapeUser()
-elif testing: # in config file or -test passed in
-    log.info("Testing")
-    #puzzle = loadPage(puzzleUrl + '26ZCX2BQ')
-    #addCodes.append('6X8PDQQN') 
-    #myCodes.append('26ZCX2BQ') #pumpkin in her jacket
-    #myCodes.append('MUM8225R') #pretty in pink
-    #if puzzle:
-        #addMine(puzzle, '26ZCX2BQ') #pumpkin in her jacket
-        #publishPuzzle('26ZCX2BQ') #pumpkin in her jacket
-    #scrapePuzzle('US8EUSFG') #Hubble
-    #scrapeUser('https://www.jigidi.com/user/Spiritual')
-    #scrapeMine()
 else:
+    # No additional arguments
     scrapeContris()
 
 # get links to images
@@ -312,10 +297,6 @@ for pic in picAdds:
     getPic(pic)
 
 log.info("Total Adds:" + str(totalAdds))
-#log.info("Total Follows:" + str(totalFollows))
-#log.info("Total Comments:" + str(totalComments))
-
-#writeList(puzzleFile, puzzleListFile)
 sendEmail()
 
 # all done
