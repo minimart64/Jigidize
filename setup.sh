@@ -36,6 +36,7 @@ mkdir /home/pi/Documents/staging
 mkdir /home/pi/Downloads/img
 mkdir /home/pi/Downloads/img/good
 mkdir /home/pi/Downloads/img/bad
+mkdir /home/pi/Downloads/img/reddit
 mkdir /home/pi/Downloads/img/rc
 mkdir /home/pi/Downloads/img/ms
 

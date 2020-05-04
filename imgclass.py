@@ -3,21 +3,35 @@
 import sys, pygame, os, shutil, time, imghdr
 pygame.init()
 
+# TODO make everything dynamic so it can resize
+# buttons based on folders in the imgFolder
+# button size and spacing based on number of buttons
+# window size based on screen size (or resizable)
+
+# TODO remove debounce interval and make it work correctly
+# multiples???
+
 imgFolder = "/home/pi/Downloads/img"
 keepFolder = "/home/pi/Downloads/img/good"
 tossFolder = "/home/pi/Downloads/img/bad"
-imgList = os.listdir(imgFolder)
-img = imgList[0]
 
+foderCount = 0
+badCount = 0
 waiting = True
 
-screenSize = display_width, display_height = 1270, 950
+# get some environment info
+imgList = os.listdir(imgFolder)
+img = imgList[0]
+print(pygame.display.Info)
+dirList = [] # list of directories in the img folder - used for buttons
+
+screenSize = display_width, display_height = 1270, 950 # can I get this from environment?
 btnWidth = 100
 btnHeight = 50
 btnTop = display_height - btnHeight - 25
 btnLeft = 150
-btnSpace = 3
-bkgColor = 100, 100, 100
+btnSpace = 3 # number of button widths between buttons - works with hard-coded sizes
+bkgColor = 100, 100, 100 # Grey
 black = 0, 0, 0
 dkRed = 150, 50, 50
 ltRed = 250, 0, 0
@@ -30,14 +44,20 @@ dbi = 0.3 # debounce interval
 def nextImg():
     global img # image used everywhere
     imgList = os.listdir(imgFolder)
+    if len(imgList) == folderCount:
+        print("no more pics")
+        raise SystemExit
     for pic in imgList:
+        # TODO add a check for os.path.isfile(imgFolder + '/' + pic)
         try:
-            imghdr.what(imgFolder + "/" + pic)
-            img = pic
-            picture = pygame.image.load(imgFolder + "/" + img)
-            break
+            if not os.path.isdir(imgFolder + '/' + pic):
+                imghdr.what(imgFolder + "/" + pic)
+                img = pic
+                picture = pygame.image.load(imgFolder + "/" + img)
+                break
         except:
-            # print("directory? " + pic)
+            print("bad file? " + pic)
+            os.remove(imgFolder + "/" + pic)
             pass
         finally:
             pass
@@ -84,26 +104,36 @@ def quitApp():
 
 def keepImg():
     # Code to run when Keep button is clicked
-    print("moving " + img + " to good")
+    # print("moving " + img + " to good")
     shutil.move(imgFolder + "/" + img, keepFolder)
     time.sleep(dbi)
     nextImg()
     
 def tossImg():
     # Code to run when Toss button is clicked
-    print("moving " + img + " to bad")
+    # print("moving " + img + " to bad")
     shutil.move(imgFolder + "/" + img, tossFolder)
     time.sleep(dbi)
     nextImg()
 
 def deleteImg():
     # Code to run when Delete button is clicked
-    print("deleting " + img)
+    # print("deleting " + img)
     os.remove(imgFolder + "/" + img)
     time.sleep(dbi)
     nextImg()
 
 ### Actual code starts here ###
+# get folder list
+
+fileList = os.listdir(imgFolder)
+for thing in fileList:
+    if os.path.isdir(imgFolder + '/' + thing):
+        dirList.append(thing)
+folderCount = len(dirList)
+print("list of folders:")
+print(dirList)
+
 screen = pygame.display.set_mode(screenSize)
 pygame.display.set_caption("Rich's Image Classifier")
 clock = pygame.time.Clock()

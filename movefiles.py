@@ -4,14 +4,14 @@ import pygame, sys, pickle
 import time, os, shutil, imghdr
 
 #directory paths
-localDir = '/home/pi/Downloads'
+localDir = '/home/pi/Downloads' # parent of local filders
 photosDir = '/home/pi/Documents/Photos'
-localGoodDir = localDir + '/img/good'
-localBadDir = localDir + '/img/bad'
-buDir = '/media/pi/storage/Stuff/classified'
+localGoodDir = localDir + '/img/good' # classified good
+localBadDir = localDir + '/img/bad' # classified bad
+buDir = '/media/pi/storage/Stuff/classified' # long term storage parent 
 buGoodDir = buDir + '/good'
 buBadDir = buDir + '/bad'
-stagingDir = '/home/pi/Documents/staging'
+stagingDir = '/home/pi/Documents/staging' # for jigidize
 imgDir = localDir + '/img'
 cneeingDir = '/home/pi/Documents/cneeing'
 cneedDir = '/home/pi/Documents/cneed'
@@ -23,19 +23,18 @@ inputDir = imgDir
 inputFunction = 'F'
 
 if len(inputValues) > 1: # 1 extra argument was entered
-    log.info("passed in values:")
-    log.info(inputValues)
     if inputValues[1] == '-a': # dedupeGlobal all
         inputFunction = 'A'
-    elif inputValues[1] == '-m':
+    elif inputValues[1] == '-m': # routine dedupe and move files around
         inputFunction = 'M'
-    elif inputValue[1] =='-h':
+    elif inputValues[1] =='-h': # help
         print("-f for folder, -g for global followed by the path to dedupe. \
             -a for all, -m for dedupe and move")
-    elif inputValues[1] == '-f' or inputValues[1] == '-g' and \
-        len(inputValues) == 2:
-        print("These switches need to be followed by a path")
         raise SystemExit
+    elif inputValues[1] == '-f' or inputValues[1] == '-g': 
+        if len(inputValues) == 2:
+            print("These switches need to be followed by a path")
+            raise SystemExit
     else: 
         print("invalid argument")
         raise SystemExit
