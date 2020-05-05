@@ -23,9 +23,9 @@ inputDir = imgDir
 inputFunction = 'F'
 
 if len(inputValues) > 1: # 1 extra argument was entered
-    if inputValues[1] == '-a': # dedupeGlobal all
+    if inputValues[1] =='-a': # dedupeGlobal all
         inputFunction = 'A'
-    elif inputValues[1] == '-m': # routine dedupe and move files around
+    elif inputValues[1] =='-m': # routine dedupe and move files around
         inputFunction = 'M'
     elif inputValues[1] =='-h': # help
         print("-f for folder, -g for global followed by the path to dedupe. \
@@ -67,9 +67,6 @@ if len(inputValues) > 2: # 2 or more extra arguments were entered
     else:
         print("invalid argument")
         raise SystemExit
-else: # no input values, we assume -f imgDir
-    inputDir = imgDir
-    inputFunction = 'F'
    
 
 def getFeatures(pic):
@@ -102,7 +99,14 @@ def writeList(codeList, listFile):
 def moveFiles():
     # moves files from the local classified folders to storage
     # if a file already exists in storage, delete it instead
-    badList = os.listdir(buBadDir)
+    try:
+        badList = os.listdir(buBadDir)
+        goodList = os.listdir(buGoodDir)
+    except:
+        print("can't load bu folders")
+        raise SystemExit
+    finally:
+        pass
     fileList = os.listdir(localBadDir)
     for pic in fileList:
         try:
@@ -111,7 +115,6 @@ def moveFiles():
             shutil.copy(localBadDir + '/' + pic, buBadDir)
         finally:
             os.remove(localBadDir + '/' + pic)
-    goodList = os.listdir(buGoodDir)
     fileList = os.listdir(localGoodDir)
     for pic in fileList:
         try:
@@ -123,15 +126,18 @@ def moveFiles():
 
 def cleanDir(targetDir):
     # remove files from targetDir that are not jpg or png
-    # get directories from bu and check for duplicates
-    if targetDir == buGoodDir:
-        goodList = ()
-    elif targetDir == buBadDir:
-        goodList = os.listdir(buGoodDir)
-    else:
-        goodList = os.listdir(buGoodDir)
-        badList = os.listdir(buBadDir)
-        goodList.extend(os.listdir(buBadDir))
+    # get directories from bu and check for duplicate
+    goodList = ()
+    try:
+        if targetDir == buBadDir:
+            goodList = os.listdir(buGoodDir)
+        else:
+            goodList = os.listdir(buGoodDir)
+            goodList.extend(os.listdir(buBadDir))
+    except:
+        print("Can't load bu directories")
+    finally:
+        pass
     print('good list count ' + str(len(goodList)))
     fileList = os.listdir(targetDir)
     renamed = removed = 0
@@ -182,17 +188,20 @@ def dedupeGlobal(targetDir):
                 matched = False
                 for i in imageSignatures:
                     if picSig[-1] == i[-1]:
-                        print(img + ' is a duplicate')
+                        # if the filenames are the same, were deduping a folder again
+                        # so dont delete it
+                        print(img + ' is a duplicate') 
                         matched = True
                         break
                     elif picSig[0:-1] == i[0:-1]:
+                        # filename is different but the content is the same
+                        # so we delete it
                         print(img+' is the same as '+i[-1])
+                        os.remove(targetDir + '/' + img)
+                        removed += 1
                         matched = True
                         break
-                if matched:
-                    os.remove(targetDir + '/' + img)
-                    removed += 1
-                else:
+                if not matched:
                     imageSignatures.append(picSig)
             except:
                 print('invalid file: ' + img)
@@ -253,10 +262,12 @@ elif inputFunction == 'A':
     dedupeGlobal(imgDir)
 elif inputFunction == 'M':
     print("dedupe and move")
+    cleanDir(imgDir)
     dedupeGlobal(localGoodDir)
     dedupeGlobal(localBadDir)
-    dedupeGlobal(imgDir)
     moveFiles()
+    dedupeFolder(imgDir)
+    
 else:
     print("nothing to do") # this should not be possible
 
