@@ -99,6 +99,7 @@ def writeList(codeList, listFile):
 def moveFiles():
     # moves files from the local classified folders to storage
     # if a file already exists in storage, delete it instead
+    print("moving files")
     try:
         badList = os.listdir(buBadDir)
         goodList = os.listdir(buGoodDir)
@@ -127,6 +128,7 @@ def moveFiles():
 def cleanDir(targetDir):
     # remove files from targetDir that are not jpg or png
     # get directories from bu and check for duplicate
+    print("cleaning folder " + targetDir)
     goodList = ()
     try:
         if targetDir == buBadDir:
@@ -266,7 +268,7 @@ elif inputFunction == 'M':
     dedupeGlobal(localGoodDir)
     dedupeGlobal(localBadDir)
     moveFiles()
-    dedupeFolder(imgDir)
+    dedupeGlobal(imgDir)
     
 else:
     print("nothing to do") # this should not be possible
