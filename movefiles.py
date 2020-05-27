@@ -131,7 +131,9 @@ def cleanDir(targetDir):
     print("cleaning folder " + targetDir)
     goodList = ()
     try:
-        if targetDir == buBadDir:
+        if targetDir == buGoodDir:
+            goodList = ()
+        elif targetDir == buBadDir:
             goodList = os.listdir(buGoodDir)
         else:
             goodList = os.listdir(buGoodDir)
